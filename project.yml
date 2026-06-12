@@ -1,0 +1,88 @@
+name: Medhavn
+options:
+  minimumXcodeGenVersion: 2.38.0
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+packages:
+  MedicationLogicEngine:
+    path: .
+  MLXSwift:
+    url: https://github.com/ml-explore/mlx-swift
+    from: 0.30.0
+  MLXSwiftLM:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    branch: main
+  swift-huggingface:
+    url: https://github.com/huggingface/swift-huggingface
+    from: 0.9.0
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    from: 1.3.0
+
+targets:
+  Medhavn:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Medhavn.swift
+      - path: AppState.swift
+      - path: Features
+      - path: Models
+      - path: Storage
+      - path: Resources
+        buildPhase: resources
+    dependencies:
+      - package: MedicationLogicEngine
+        product: MedicationLogicEngine
+      - package: MLXSwift
+        product: MLX
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXHuggingFace
+      - package: swift-huggingface
+        product: HuggingFace
+      - package: swift-transformers
+        product: Tokenizers
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.medhavn.app
+        PRODUCT_NAME: Medhavn
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.10"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Info.plist
+        INFOPLIST_KEY_SUPABASE_URL: "https://supabasemedhavn.viktron.ai"
+        INFOPLIST_KEY_SUPABASE_ANON_KEY: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MjI1MzkwMCwiZXhwIjo0OTI3OTI3NTAwLCJyb2xlIjoiYW5vbiJ9.h_do6rxV4sjmm38muFi7rQ0b5hT0r7KmjNGC_AudFEI"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: YES
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lsqlite3"
+    scheme:
+      testTargets:
+        - MedhavnUnitTests
+
+  MedhavnUnitTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests/MedicationLogicEngineTests
+    dependencies:
+      - target: Medhavn
+      - package: MedicationLogicEngine
+        product: MedicationLogicEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.medhavn.app.tests
+        SWIFT_VERSION: "5.10"

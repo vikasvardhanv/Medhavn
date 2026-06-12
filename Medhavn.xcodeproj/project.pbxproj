@@ -1,0 +1,603 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 63;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01CBC38B51896A63C780099A /* IntuioOnDeviceLLM.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFAAF809D404410DA873F666 /* IntuioOnDeviceLLM.swift */; };
+		028E3B932D905DD51DFB3CFA /* DrugLookupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CDDC4FDBFE4EAF20AA23BE /* DrugLookupService.swift */; };
+		136639E71314BAD15307F093 /* PillboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DB85C0E3C5C8C1257A26856 /* PillboxView.swift */; };
+		19C5D3449C88D9E5E8796970 /* AdaptiveLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6FC78D60920ED65F568483C /* AdaptiveLayout.swift */; };
+		1B86D8DF74579C25FD40671E /* MedicationNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 619C845E3E2C019FC79C71D1 /* MedicationNotificationService.swift */; };
+		23C31F5B84EF260B32749522 /* HealthToolsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E3D521FCCD73A797A3731D7 /* HealthToolsViews.swift */; };
+		ABCD1234567890ABCDEF1234 /* FertilityTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCD1234567890ABCDEF1235 /* FertilityTrackerView.swift */; };
+		2658F966165BC1A53ACD7D08 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107F5C71C89244FF2C7B1DEF /* AppModels.swift */; };
+		2B3D29351F839EDB8416ED23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 894CE0C0E65744A2F853EC2D /* Assets.xcassets */; };
+		3712122221CF6502F4BAC558 /* FirstLaunchSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2EB7EADB150286F8E478288 /* FirstLaunchSetupView.swift */; };
+		38303BED48FF31D0D02F2594 /* AuthConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6176CFDED394CAFE4FDBE67 /* AuthConsentView.swift */; };
+		3A00B4A6CA065A87C23AF98E /* AuthAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB99CA834F2D6F13BA68F38 /* AuthAPI.swift */; };
+		3FA7FE255502547D9CCD104F /* MedCabinetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A11709968E0885311192ABD /* MedCabinetView.swift */; };
+		4C8E74C6CCF5E8B69CFC92E8 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD40CA74F9DC53DBAC812A6 /* PDFExporter.swift */; };
+		55DEBF31FD9FCBDD7B82C571 /* InteractionsCheckerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FDAE1D14E7CFD3045500C98 /* InteractionsCheckerView.swift */; };
+		55EAE41C8F84CDCDC3656AF8 /* ScannerSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4292494420E08B660979239C /* ScannerSheetView.swift */; };
+		585638AFBA4F23F0C4103D43 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A592C3296B7CD4721DD475F /* AppState.swift */; };
+		60E150C95E5E349B595A9C24 /* ProactiveSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7FD6B8129A4E47868893E2 /* ProactiveSuggestion.swift */; };
+		6137DA024337C336BBCD49C4 /* MedicationLogicEngine in Frameworks */ = {isa = PBXBuildFile; productRef = C064349C4F5AB351B21923A3 /* MedicationLogicEngine */; };
+		72B24B2670A4E10F9EA940A6 /* UpdatesFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544CC0FFFA8E3DC1C486780E /* UpdatesFeedView.swift */; };
+		7379E99D09942FCD724CF112 /* ParentCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B77B46B34C0D2C01C4E71C /* ParentCareView.swift */; };
+		75A1DB9EE249A8F0ACF8F658 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F5561FBBC07C4CA3F809D0 /* LockScreenView.swift */; };
+		75E869C01EFD5802E89E0BD4 /* AddMedicationWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B475936041726FF9A1911D /* AddMedicationWizardView.swift */; };
+		7882A250724301F9602B0342 /* ProactiveInsightsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF163477C9418D88BCF20F4 /* ProactiveInsightsEngine.swift */; };
+		7D6ACD590D5AC204D513D698 /* MoreHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AF8459D9FAEB513AB47212 /* MoreHubView.swift */; };
+		7FCB84A024089CE74083FA25 /* AddPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA3BD7F4AAE7DCF893FEB4F /* AddPlanView.swift */; };
+		879A1C70F7EBE4AD9584D156 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 8B8DF9450FC5D5E0FF3CFDC7 /* Tokenizers */; };
+		8CC9D42B84A58F1F1D5F3D3E /* PeriodTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04E7C8AC3268D77606C0425 /* PeriodTrackerView.swift */; };
+		97B81794DF219869254CF9D0 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266D27EFCF3F03CE338643FF /* MLXLLM */; };
+		9AEB8EB647FDB2C56D392A41 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED081489C467CF6C8EAFCB8 /* SettingsView.swift */; };
+		9D9BE8F23DF52F58FEA1F981 /* MedicationLogicEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 23F5EEB7BABA87BDBE1601E3 /* MedicationLogicEngine */; };
+		AFAC07C14DF26C4CF8BA747C /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = B45C04BEA9E5F82EDF64A417 /* MLXLMCommon */; };
+		B037EC21A5A4616F7B217CAD /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 9C375CA3649F2F25F799E4AD /* MLXHuggingFace */; };
+		B14CB50C614AB2E859B475F5 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EC7FB526A1F13C490D44730 /* AppLogger.swift */; };
+		C2CC0E272221846D994C5EFC /* SQLiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F624BDAE1FF651DA3298FD /* SQLiteStore.swift */; };
+		C95F242BA9C5717D6945C46A /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = F3136894EA1F59CB660DC06F /* MLX */; };
+		CB78C9BF0527546B3919E448 /* ReportsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DB2D42A3125E950F6FF6E5B /* ReportsDashboardView.swift */; };
+		CE511310BE14001B5033155D /* FeatureStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D834AEE3EF0B822653EED42A /* FeatureStateStore.swift */; };
+		D4246553A098BB75B23C95DB /* ScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF3DEF25263D6A59A47D2813 /* ScheduleTests.swift */; };
+		D5092843225D1054ED341662 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 0F54B3BC7B16D9D38B2E8846 /* HuggingFace */; };
+		D7A1B196878F14B4B518D697 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AA9688D86423CA085A4DE6 /* Theme.swift */; };
+		D7A3C968EC84786BD358715F /* Medhavn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2556AC22DD1431D7FBB753E2 /* Medhavn.swift */; };
+		DBC2381259E3F18C12BC3119 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFDF439D0820F3B5496C1AC /* TodayView.swift */; };
+		DF63057B1A947481C21D320C /* AppLogExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564CE7D053252E71D9E8B802 /* AppLogExportService.swift */; };
+		EC6A212BDD4C2C8EA2A23F37 /* FloatingPillChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D73F0751CCE22E81FB52DC /* FloatingPillChatView.swift */; };
+		F1A090981E53838E58CC3F11 /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74BD57B531322C6C456A81CD /* ParserTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0115E9C13E9CE13214D1D344 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE60453451BF76343BCACBB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2C16094EDC5AC5E545A515E4;
+			remoteInfo = Medhavn;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0DB99CA834F2D6F13BA68F38 /* AuthAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPI.swift; sourceTree = "<group>"; };
+		107F5C71C89244FF2C7B1DEF /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
+		19B475936041726FF9A1911D /* AddMedicationWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicationWizardView.swift; sourceTree = "<group>"; };
+		1FDAE1D14E7CFD3045500C98 /* InteractionsCheckerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionsCheckerView.swift; sourceTree = "<group>"; };
+		2556AC22DD1431D7FBB753E2 /* Medhavn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Medhavn.swift; sourceTree = "<group>"; };
+		2A11709968E0885311192ABD /* MedCabinetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedCabinetView.swift; sourceTree = "<group>"; };
+		2A592C3296B7CD4721DD475F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		2DB2D42A3125E950F6FF6E5B /* ReportsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsDashboardView.swift; sourceTree = "<group>"; };
+		2DB85C0E3C5C8C1257A26856 /* PillboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillboxView.swift; sourceTree = "<group>"; };
+		2EF163477C9418D88BCF20F4 /* ProactiveInsightsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveInsightsEngine.swift; sourceTree = "<group>"; };
+		32D73F0751CCE22E81FB52DC /* FloatingPillChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPillChatView.swift; sourceTree = "<group>"; };
+		33AA9688D86423CA085A4DE6 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		34A9B9F80778560CF0CA20DA /* Medhavn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Medhavn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3ED081489C467CF6C8EAFCB8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		40F5561FBBC07C4CA3F809D0 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
+		4292494420E08B660979239C /* ScannerSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerSheetView.swift; sourceTree = "<group>"; };
+		544CC0FFFA8E3DC1C486780E /* UpdatesFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesFeedView.swift; sourceTree = "<group>"; };
+		564CE7D053252E71D9E8B802 /* AppLogExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogExportService.swift; sourceTree = "<group>"; };
+		5C7FD6B8129A4E47868893E2 /* ProactiveSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveSuggestion.swift; sourceTree = "<group>"; };
+		5E3D521FCCD73A797A3731D7 /* HealthToolsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthToolsViews.swift; sourceTree = "<group>"; };
+		ABCD1234567890ABCDEF1235 /* FertilityTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FertilityTrackerView.swift; sourceTree = "<group>"; };
+		619C845E3E2C019FC79C71D1 /* MedicationNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationNotificationService.swift; sourceTree = "<group>"; };
+		6F9C40314BB5412E9139FC26 /* MedhavnUnitTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = text; name = MedhavnUnitTests.xctest; path = .xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		74BD57B531322C6C456A81CD /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
+		7BFDF439D0820F3B5496C1AC /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		894CE0C0E65744A2F853EC2D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8EC7FB526A1F13C490D44730 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
+		90B77B46B34C0D2C01C4E71C /* ParentCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentCareView.swift; sourceTree = "<group>"; };
+		93F624BDAE1FF651DA3298FD /* SQLiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStore.swift; sourceTree = "<group>"; };
+		A6FC78D60920ED65F568483C /* AdaptiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLayout.swift; sourceTree = "<group>"; };
+		B04E7C8AC3268D77606C0425 /* PeriodTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodTrackerView.swift; sourceTree = "<group>"; };
+		C4AF8459D9FAEB513AB47212 /* MoreHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreHubView.swift; sourceTree = "<group>"; };
+		C6176CFDED394CAFE4FDBE67 /* AuthConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthConsentView.swift; sourceTree = "<group>"; };
+		CCD40CA74F9DC53DBAC812A6 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
+		D834AEE3EF0B822653EED42A /* FeatureStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureStateStore.swift; sourceTree = "<group>"; };
+		DC8E32EA7BD0B20A559DF4A7 /* Medhavn */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Medhavn; path = .; sourceTree = SOURCE_ROOT; };
+		DEA3BD7F4AAE7DCF893FEB4F /* AddPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPlanView.swift; sourceTree = "<group>"; };
+		E2EB7EADB150286F8E478288 /* FirstLaunchSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstLaunchSetupView.swift; sourceTree = "<group>"; };
+		EFAAF809D404410DA873F666 /* IntuioOnDeviceLLM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntuioOnDeviceLLM.swift; sourceTree = "<group>"; };
+		F3CDDC4FDBFE4EAF20AA23BE /* DrugLookupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugLookupService.swift; sourceTree = "<group>"; };
+		FF3DEF25263D6A59A47D2813 /* ScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9264FD2C29E4898B28E4616A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6137DA024337C336BBCD49C4 /* MedicationLogicEngine in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0523A1DD9F0138F062F71EB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9BE8F23DF52F58FEA1F981 /* MedicationLogicEngine in Frameworks */,
+				C95F242BA9C5717D6945C46A /* MLX in Frameworks */,
+				97B81794DF219869254CF9D0 /* MLXLLM in Frameworks */,
+				AFAC07C14DF26C4CF8BA747C /* MLXLMCommon in Frameworks */,
+				B037EC21A5A4616F7B217CAD /* MLXHuggingFace in Frameworks */,
+				D5092843225D1054ED341662 /* HuggingFace in Frameworks */,
+				879A1C70F7EBE4AD9584D156 /* Tokenizers in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		093D4F8587161F1DD4146461 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				DC8E32EA7BD0B20A559DF4A7 /* Medhavn */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		450BAB7E7E27DED9C6672CE3 /* MedicationLogicEngineTests */ = {
+			isa = PBXGroup;
+			children = (
+				74BD57B531322C6C456A81CD /* ParserTests.swift */,
+				FF3DEF25263D6A59A47D2813 /* ScheduleTests.swift */,
+			);
+			path = MedicationLogicEngineTests;
+			sourceTree = "<group>";
+		};
+		484C660A6FBE8C109E30E9D3 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				107F5C71C89244FF2C7B1DEF /* AppModels.swift */,
+				5C7FD6B8129A4E47868893E2 /* ProactiveSuggestion.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7E16D36757D1D43E194A4815 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				450BAB7E7E27DED9C6672CE3 /* MedicationLogicEngineTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		9CC7510A0C574BFB1B2A7809 = {
+			isa = PBXGroup;
+			children = (
+				2A592C3296B7CD4721DD475F /* AppState.swift */,
+				2556AC22DD1431D7FBB753E2 /* Medhavn.swift */,
+				DC475CFFC63C065D068BE1AF /* Features */,
+				484C660A6FBE8C109E30E9D3 /* Models */,
+				093D4F8587161F1DD4146461 /* Packages */,
+				FCBD6188B757976B30CCEBE5 /* Resources */,
+				C2F074620D132074E5ABE1D7 /* Storage */,
+				7E16D36757D1D43E194A4815 /* Tests */,
+				BB715751D5C2977A903941E2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BB715751D5C2977A903941E2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34A9B9F80778560CF0CA20DA /* Medhavn.app */,
+				6F9C40314BB5412E9139FC26 /* MedhavnUnitTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C2F074620D132074E5ABE1D7 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				564CE7D053252E71D9E8B802 /* AppLogExportService.swift */,
+				8EC7FB526A1F13C490D44730 /* AppLogger.swift */,
+				0DB99CA834F2D6F13BA68F38 /* AuthAPI.swift */,
+				F3CDDC4FDBFE4EAF20AA23BE /* DrugLookupService.swift */,
+				D834AEE3EF0B822653EED42A /* FeatureStateStore.swift */,
+				EFAAF809D404410DA873F666 /* IntuioOnDeviceLLM.swift */,
+				619C845E3E2C019FC79C71D1 /* MedicationNotificationService.swift */,
+				2EF163477C9418D88BCF20F4 /* ProactiveInsightsEngine.swift */,
+				93F624BDAE1FF651DA3298FD /* SQLiteStore.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		DC475CFFC63C065D068BE1AF /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A6FC78D60920ED65F568483C /* AdaptiveLayout.swift */,
+				19B475936041726FF9A1911D /* AddMedicationWizardView.swift */,
+				DEA3BD7F4AAE7DCF893FEB4F /* AddPlanView.swift */,
+				C6176CFDED394CAFE4FDBE67 /* AuthConsentView.swift */,
+				E2EB7EADB150286F8E478288 /* FirstLaunchSetupView.swift */,
+				32D73F0751CCE22E81FB52DC /* FloatingPillChatView.swift */,
+				5E3D521FCCD73A797A3731D7 /* HealthToolsViews.swift */,
+				ABCD1234567890ABCDEF1235 /* FertilityTrackerView.swift */,
+				1FDAE1D14E7CFD3045500C98 /* InteractionsCheckerView.swift */,
+				40F5561FBBC07C4CA3F809D0 /* LockScreenView.swift */,
+				2A11709968E0885311192ABD /* MedCabinetView.swift */,
+				C4AF8459D9FAEB513AB47212 /* MoreHubView.swift */,
+				90B77B46B34C0D2C01C4E71C /* ParentCareView.swift */,
+				CCD40CA74F9DC53DBAC812A6 /* PDFExporter.swift */,
+				B04E7C8AC3268D77606C0425 /* PeriodTrackerView.swift */,
+				2DB85C0E3C5C8C1257A26856 /* PillboxView.swift */,
+				2DB2D42A3125E950F6FF6E5B /* ReportsDashboardView.swift */,
+				4292494420E08B660979239C /* ScannerSheetView.swift */,
+				3ED081489C467CF6C8EAFCB8 /* SettingsView.swift */,
+				33AA9688D86423CA085A4DE6 /* Theme.swift */,
+				7BFDF439D0820F3B5496C1AC /* TodayView.swift */,
+				544CC0FFFA8E3DC1C486780E /* UpdatesFeedView.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		FCBD6188B757976B30CCEBE5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				894CE0C0E65744A2F853EC2D /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2C16094EDC5AC5E545A515E4 /* Medhavn */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7BDD9FE8325D772380B198F3 /* Build configuration list for PBXNativeTarget "Medhavn" */;
+			buildPhases = (
+				D78D936AF1922D272FD66A89 /* Sources */,
+				E729ADED68481D9464DA2E70 /* Resources */,
+				F0523A1DD9F0138F062F71EB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Medhavn;
+			packageProductDependencies = (
+				23F5EEB7BABA87BDBE1601E3 /* MedicationLogicEngine */,
+				F3136894EA1F59CB660DC06F /* MLX */,
+				266D27EFCF3F03CE338643FF /* MLXLLM */,
+				B45C04BEA9E5F82EDF64A417 /* MLXLMCommon */,
+				9C375CA3649F2F25F799E4AD /* MLXHuggingFace */,
+				0F54B3BC7B16D9D38B2E8846 /* HuggingFace */,
+				8B8DF9450FC5D5E0FF3CFDC7 /* Tokenizers */,
+			);
+			productName = Medhavn;
+			productReference = 34A9B9F80778560CF0CA20DA /* Medhavn.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6A5920BA998FC239B1875A70 /* MedhavnUnitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 66CF4C366D2CB53C50ACAC4D /* Build configuration list for PBXNativeTarget "MedhavnUnitTests" */;
+			buildPhases = (
+				07EDE932C4AF474122A0AB1F /* Sources */,
+				9264FD2C29E4898B28E4616A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B431AC6293067730E81DF4F8 /* PBXTargetDependency */,
+			);
+			name = MedhavnUnitTests;
+			packageProductDependencies = (
+				C064349C4F5AB351B21923A3 /* MedicationLogicEngine */,
+			);
+			productName = MedhavnUnitTests;
+			productReference = 6F9C40314BB5412E9139FC26 /* MedhavnUnitTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DE60453451BF76343BCACBB9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 04085CA4F2B6602A85EBB45B /* Build configuration list for PBXProject "Medhavn" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 9CC7510A0C574BFB1B2A7809;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4318887BD400C50D88653E3F /* XCRemoteSwiftPackageReference "mlx-swift" */,
+				5EFB39A0BE65B9FE603CCD87 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				0A5FF3A7F583DD0C27345BE3 /* XCRemoteSwiftPackageReference "swift-huggingface" */,
+				7F2C7DDBB7EAD6189AFAD40A /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				E28B5485BB35CC7E8FD274E8 /* XCLocalSwiftPackageReference "." */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2C16094EDC5AC5E545A515E4 /* Medhavn */,
+				6A5920BA998FC239B1875A70 /* MedhavnUnitTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E729ADED68481D9464DA2E70 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2B3D29351F839EDB8416ED23 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		07EDE932C4AF474122A0AB1F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1A090981E53838E58CC3F11 /* ParserTests.swift in Sources */,
+				D4246553A098BB75B23C95DB /* ScheduleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D78D936AF1922D272FD66A89 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19C5D3449C88D9E5E8796970 /* AdaptiveLayout.swift in Sources */,
+				75E869C01EFD5802E89E0BD4 /* AddMedicationWizardView.swift in Sources */,
+				7FCB84A024089CE74083FA25 /* AddPlanView.swift in Sources */,
+				DF63057B1A947481C21D320C /* AppLogExportService.swift in Sources */,
+				B14CB50C614AB2E859B475F5 /* AppLogger.swift in Sources */,
+				2658F966165BC1A53ACD7D08 /* AppModels.swift in Sources */,
+				585638AFBA4F23F0C4103D43 /* AppState.swift in Sources */,
+				3A00B4A6CA065A87C23AF98E /* AuthAPI.swift in Sources */,
+				38303BED48FF31D0D02F2594 /* AuthConsentView.swift in Sources */,
+				028E3B932D905DD51DFB3CFA /* DrugLookupService.swift in Sources */,
+				CE511310BE14001B5033155D /* FeatureStateStore.swift in Sources */,
+				3712122221CF6502F4BAC558 /* FirstLaunchSetupView.swift in Sources */,
+				EC6A212BDD4C2C8EA2A23F37 /* FloatingPillChatView.swift in Sources */,
+				23C31F5B84EF260B32749522 /* HealthToolsViews.swift in Sources */,
+				ABCD1234567890ABCDEF1234 /* FertilityTrackerView.swift in Sources */,
+				55DEBF31FD9FCBDD7B82C571 /* InteractionsCheckerView.swift in Sources */,
+				01CBC38B51896A63C780099A /* IntuioOnDeviceLLM.swift in Sources */,
+				75A1DB9EE249A8F0ACF8F658 /* LockScreenView.swift in Sources */,
+				3FA7FE255502547D9CCD104F /* MedCabinetView.swift in Sources */,
+				D7A3C968EC84786BD358715F /* Medhavn.swift in Sources */,
+				1B86D8DF74579C25FD40671E /* MedicationNotificationService.swift in Sources */,
+				7D6ACD590D5AC204D513D698 /* MoreHubView.swift in Sources */,
+				7379E99D09942FCD724CF112 /* ParentCareView.swift in Sources */,
+				4C8E74C6CCF5E8B69CFC92E8 /* PDFExporter.swift in Sources */,
+				8CC9D42B84A58F1F1D5F3D3E /* PeriodTrackerView.swift in Sources */,
+				136639E71314BAD15307F093 /* PillboxView.swift in Sources */,
+				7882A250724301F9602B0342 /* ProactiveInsightsEngine.swift in Sources */,
+				60E150C95E5E349B595A9C24 /* ProactiveSuggestion.swift in Sources */,
+				CB78C9BF0527546B3919E448 /* ReportsDashboardView.swift in Sources */,
+				C2CC0E272221846D994C5EFC /* SQLiteStore.swift in Sources */,
+				55EAE41C8F84CDCDC3656AF8 /* ScannerSheetView.swift in Sources */,
+				9AEB8EB647FDB2C56D392A41 /* SettingsView.swift in Sources */,
+				D7A1B196878F14B4B518D697 /* Theme.swift in Sources */,
+				DBC2381259E3F18C12BC3119 /* TodayView.swift in Sources */,
+				72B24B2670A4E10F9EA940A6 /* UpdatesFeedView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B431AC6293067730E81DF4F8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2C16094EDC5AC5E545A515E4 /* Medhavn */;
+			targetProxy = 0115E9C13E9CE13214D1D344 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1DC2FB1458D3F17AB8A07F63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = 8UNGW75363;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MjI1MzkwMCwiZXhwIjo0OTI3OTI3NTAwLCJyb2xlIjoiYW5vbiJ9.h_do6rxV4sjmm38muFi7rQ0b5hT0r7KmjNGC_AudFEI;
+				INFOPLIST_KEY_SUPABASE_URL = "https://supabasemedhavn.viktron.ai";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.medhavn.app;
+				PRODUCT_NAME = Medhavn;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		50EFDE9570F5C60E3B6CE517 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.medhavn.app.tests;
+				SWIFT_VERSION = 5.10;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Medhavn.app/Medhavn";
+			};
+			name = Release;
+		};
+		65621212B012F35FE4F63AA2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = 8UNGW75363;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MjI1MzkwMCwiZXhwIjo0OTI3OTI3NTAwLCJyb2xlIjoiYW5vbiJ9.h_do6rxV4sjmm38muFi7rQ0b5hT0r7KmjNGC_AudFEI;
+				INFOPLIST_KEY_SUPABASE_URL = "https://supabasemedhavn.viktron.ai";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.medhavn.app;
+				PRODUCT_NAME = Medhavn;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8F550B2A7D8C34A053810F1A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		CDB96E2E8F585C0E2B1B0BE2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		E2BCEC710A618BAE975E907B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.medhavn.app.tests;
+				SWIFT_VERSION = 5.10;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Medhavn.app/Medhavn";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		04085CA4F2B6602A85EBB45B /* Build configuration list for PBXProject "Medhavn" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F550B2A7D8C34A053810F1A /* Debug */,
+				CDB96E2E8F585C0E2B1B0BE2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		66CF4C366D2CB53C50ACAC4D /* Build configuration list for PBXNativeTarget "MedhavnUnitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2BCEC710A618BAE975E907B /* Debug */,
+				50EFDE9570F5C60E3B6CE517 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7BDD9FE8325D772380B198F3 /* Build configuration list for PBXNativeTarget "Medhavn" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DC2FB1458D3F17AB8A07F63 /* Debug */,
+				65621212B012F35FE4F63AA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E28B5485BB35CC7E8FD274E8 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0A5FF3A7F583DD0C27345BE3 /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-huggingface";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
+		4318887BD400C50D88653E3F /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.30.0;
+			};
+		};
+		5EFB39A0BE65B9FE603CCD87 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		7F2C7DDBB7EAD6189AFAD40A /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0F54B3BC7B16D9D38B2E8846 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0A5FF3A7F583DD0C27345BE3 /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		23F5EEB7BABA87BDBE1601E3 /* MedicationLogicEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MedicationLogicEngine;
+		};
+		266D27EFCF3F03CE338643FF /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5EFB39A0BE65B9FE603CCD87 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		8B8DF9450FC5D5E0FF3CFDC7 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7F2C7DDBB7EAD6189AFAD40A /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		9C375CA3649F2F25F799E4AD /* MLXHuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5EFB39A0BE65B9FE603CCD87 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXHuggingFace;
+		};
+		B45C04BEA9E5F82EDF64A417 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5EFB39A0BE65B9FE603CCD87 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		C064349C4F5AB351B21923A3 /* MedicationLogicEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MedicationLogicEngine;
+		};
+		F3136894EA1F59CB660DC06F /* MLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4318887BD400C50D88653E3F /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLX;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = DE60453451BF76343BCACBB9 /* Project object */;
+}

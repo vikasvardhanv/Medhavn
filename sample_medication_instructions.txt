@@ -1,0 +1,20 @@
+Medication Instructions Sample
+
+Patient: John Doe
+DOB: 1986-02-18
+Date: 2026-03-01
+
+1) Amoxicillin 500 mg capsule
+ - Take 1 capsule by mouth every 8 hours for 7 days.
+ - Start: today at 08:00.
+
+2) Ibuprofen 200 mg tablet (PRN pain)
+ - Take 1-2 tablets by mouth every 6 hours as needed.
+ - Maximum: 6 tablets in 24 hours.
+
+3) Prednisone taper
+ - Days 1-3: 20 mg every morning with food.
+ - Days 4-6: 10 mg every morning with food.
+ - Days 7-9: 5 mg every morning with food, then stop.
+
+Pharmacy note: Avoid duplicate NSAIDs. If symptoms worsen, contact clinician.

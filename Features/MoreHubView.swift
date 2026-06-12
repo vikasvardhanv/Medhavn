@@ -1,0 +1,399 @@
+import SwiftUI
+import MedicationLogicEngine
+
+public struct MoreHubView: View {
+    @EnvironmentObject private var appState: AppState
+
+    public init() {}
+
+    public var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Profiles section
+                profilesSection
+                    .staggeredEntrance(delay: 0.0)
+
+                // Health tools section
+                healthToolsSection
+                    .staggeredEntrance(delay: 0.08)
+
+                // Safety tools section
+                safetySection
+                    .staggeredEntrance(delay: 0.16)
+
+                // Fertility tracking section
+                fertilitySection
+                    .staggeredEntrance(delay: 0.20)
+
+                // AI Engine & Settings Tools
+                toolsSection
+                    .staggeredEntrance(delay: 0.24)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+            .frame(maxWidth: 720)
+            .frame(maxWidth: .infinity)
+        }
+        .background { MeshBackgroundView() }
+        .navigationTitle(appState.selectedProfile.map { "\($0.name)'s Hub" } ?? "Hub")
+        .accessibilityLabel(appState.selectedProfile.map { "\($0.name)'s Hub" } ?? "Hub")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.black)
+                }
+                .accessibilityLabel("Open Settings")
+            }
+        }
+    }
+
+    private var profilesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Profiles")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(appState.profiles) { p in
+                        let isSelected = appState.selectedProfileID == p.id
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                appState.selectProfile(p.id)
+                            }
+                        } label: {
+                            VStack(spacing: 8) {
+                                ZStack {
+                                    Circle()
+                                        .fill(isSelected ? AppTheme.primary : Color.white.opacity(0.24))
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: p.avatarSymbol)
+                                        .foregroundStyle(isSelected ? .black : .white.opacity(0.6))
+                                        .font(.title3.weight(.semibold))
+                                }
+                                .overlay(
+                                    Circle()
+                                        .stroke(isSelected ? Color.clear : Color.white.opacity(0.2), lineWidth: 1.5)
+                                )
+                                .shadow(color: isSelected ? AppTheme.primary.opacity(0.3) : Color.clear, radius: 6, x: 0, y: 3)
+                                
+                                Text(p.name)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(isSelected ? .black : .white.opacity(0.7))
+                                    .lineLimit(1)
+                                    .frame(width: 64)
+                            }
+                        }
+                    }
+                    
+                    NavigationLink {
+                        AddDependentView().environmentObject(appState)
+                    } label: {
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.primary.opacity(0.12))
+                                    .frame(width: 52, height: 52)
+                                Image(systemName: "person.badge.plus")
+                                    .foregroundStyle(.black)
+                                    .font(.title3.weight(.bold))
+                            }
+                            .overlay(
+                                Circle()
+                                    .stroke(AppTheme.primary.opacity(0.2), lineWidth: 1.5)
+                            )
+                            
+                            Text("Add")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.black)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
+            }
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 24)
+    }
+
+    private var healthToolsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Health Tools")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 1) {
+                hubRow(icon: "waveform.path.ecg.rectangle", color: AppTheme.danger, title: "Measurements",
+                       subtitle: "Vitals, biometrics & wellness") {
+                    MeasurementsListView().environmentObject(appState)
+                }
+                
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                
+                hubRow(icon: "book.pages.fill", color: AppTheme.warning, title: "Diary",
+                       subtitle: "Personal health notes") {
+                    DiaryView().environmentObject(appState)
+                }
+                
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                
+                hubRow(icon: "calendar.badge.checkmark", color: AppTheme.accentBlue, title: "Appointments",
+                       subtitle: "\(appState.appointments.count) upcoming") {
+                    AppointmentsView().environmentObject(appState)
+                }
+                
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                
+                hubRow(icon: "stethoscope", color: AppTheme.accentTeal, title: "Doctors",
+                       subtitle: "\(appState.doctors.count) contacts") {
+                    DoctorsView().environmentObject(appState)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .glassCard(cornerRadius: 24)
+    }
+
+    // MARK: - Fertility Tracking Section
+    private var fertilitySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Fertility")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 1) {
+                hubRow(icon: "heart.circle", color: AppTheme.danger, title: "Fertility Tracker",
+                       subtitle: "Cycle, symptoms & treatments") {
+                    FertilityTrackerView().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "drop.fill", color: AppTheme.danger, title: "Period Tracker",
+                       subtitle: appState.currentFertilityCycle?.predictedNextPeriod.map { "Next period \($0.formatted(date: .abbreviated, time: .omitted))" } ?? "Cycle & symptom tracking") {
+                    PeriodTrackerView().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "pills", color: AppTheme.info, title: "Fertility Treatments",
+                       subtitle: "\(appState.fertilityTreatments.count) logged") {
+                    TreatmentsTab().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "flask", color: AppTheme.accentTeal, title: "Lab Results",
+                       subtitle: "\(appState.fertilityLabs.count) recorded") {
+                    LabsTab().environmentObject(appState)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .glassCard(cornerRadius: 24)
+    }
+
+    private var safetySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Safety")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 1) {
+                hubRow(icon: "shield.lefthalf.filled.badge.checkmark", color: AppTheme.info, title: "SafeCircle",
+                       subtitle: "\(appState.safeCircleContacts.count) trusted contacts") {
+                    SafeCircleView().environmentObject(appState)
+                }
+                
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "figure.2.and.child.holdinghands", color: AppTheme.accentTeal, title: "Parent Care",
+                       subtitle: "\(appState.unresolvedParentMissedDoseAlerts().count) missed-dose alerts") {
+                    ParentCareView().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                
+                hubRow(icon: "arrow.triangle.2.circlepath.doc.on.clipboard", color: AppTheme.danger, title: "Interactions Checker",
+                       subtitle: "Safety check between your meds") {
+                    InteractionsCheckerView().environmentObject(appState)
+                }
+                
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                
+                hubRow(icon: "allergens", color: AppTheme.warning, title: "Allergies",
+                       subtitle: "\(appState.allergies.count) recorded") {
+                    AllergiesView().environmentObject(appState)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .glassCard(cornerRadius: 24)
+    }
+
+    private var toolsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Tools & Services")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 12) {
+                // AI Model Indicator
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(AppTheme.info.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "cpu.fill")
+                            .foregroundStyle(AppTheme.info)
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Intuio AI Engine")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                        
+                        if appState.isModelPrewarming {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Downloading models…")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        } else if appState.isModelWarmedUp {
+                            Text("Ready · fully on-device")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.success)
+                        } else if appState.modelPrewarmFailed {
+                            Text("Offline · Tap to retry setup")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.warning)
+                        } else {
+                            Text("Offline")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color.white.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+
+                // Navigation tools
+                VStack(spacing: 1) {
+                    NavigationLink {
+                        AddPlanView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .foregroundStyle(.black)
+                                .font(.system(size: 16, weight: .bold))
+                                .frame(width: 24)
+                            Text("Medication Plan Parser")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                    }
+
+                    Divider().background(Color.white.opacity(0.15))
+
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "gearshape")
+                                .foregroundStyle(.black)
+                                .font(.system(size: 16, weight: .bold))
+                                .frame(width: 24)
+                            Text("App Settings")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                    }
+                }
+                .background(Color.white.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+            }
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 24)
+    }
+
+    @ViewBuilder
+    private func hubRow<Dest: View>(icon: String, color: Color, title: String, subtitle: String,
+                                    @ViewBuilder destination: () -> Dest) -> some View {
+        NavigationLink(destination: destination()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .foregroundStyle(.white)
+                        .font(.system(size: 18))
+                }
+                .shadow(color: color.opacity(0.2), radius: 4, x: 0, y: 2)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+        }
+    }
+}

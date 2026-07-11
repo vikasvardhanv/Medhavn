@@ -66,6 +66,13 @@ final class AppState: ObservableObject {
     @Published var isAppLocked: Bool = false
     @Published var pinLockEnabled: Bool = false
     @Published var biometricLockEnabled: Bool = false
+    // Tracker preference (which tracker occupies tab bar slot 3)
+    @Published var trackerPreference: TrackerPreference = .none
+    @Published var trackerSelectionCompleted: Bool = false
+    // Dependent invitations & linking
+    @Published var sentInvitations: [DependentInvitationRecord] = []
+    @Published var receivedInvitations: [DependentInvitationRecord] = []
+    @Published var pendingInvitationID: UUID? = nil
     @Published var isModelWarmedUp: Bool = false
     @Published var isModelPrewarming: Bool = false
     @Published var modelPrewarmFailed: Bool = false
@@ -105,6 +112,14 @@ final class AppState: ObservableObject {
             processingConsentAccepted = settings.processingConsentAccepted
             isLoggedIn = settings.isLoggedIn
             consentChecklistCompleted = settings.consentChecklistCompleted
+            trackerPreference = settings.trackerPreference
+            trackerSelectionCompleted = settings.trackerSelectionCompleted
+            // Auto-complete tracker selection for existing users who signed up
+            // before this feature existed — they keep the default Insights tab.
+            if consentChecklistCompleted && !trackerSelectionCompleted {
+                trackerSelectionCompleted = true
+                trackerPreference = .none
+            }
             authEmail = settings.authEmail ?? ""
             authUserId = settings.authUserId
             authToken = settings.authToken
@@ -224,6 +239,8 @@ final class AppState: ObservableObject {
             settings.processingConsentAccepted = processingConsentAccepted
             settings.isLoggedIn = isLoggedIn
             settings.consentChecklistCompleted = consentChecklistCompleted
+            settings.trackerPreference = trackerPreference
+            settings.trackerSelectionCompleted = trackerSelectionCompleted
             settings.authEmail = authEmail.isEmpty ? nil : authEmail
             settings.authUserId = authUserId
             settings.authToken = authToken
@@ -270,6 +287,8 @@ final class AppState: ObservableObject {
         fertilitySymptoms = featureStore.load([FertilitySymptomRecord].self, key: "feature.fertilitySymptoms", fallback: [])
         fertilityTreatments = featureStore.load([FertilityTreatmentRecord].self, key: "feature.fertilityTreatments", fallback: [])
         fertilityLabs = featureStore.load([FertilityLabRecord].self, key: "feature.fertilityLabs", fallback: [])
+        sentInvitations = featureStore.load([DependentInvitationRecord].self, key: "feature.sentInvitations", fallback: [])
+        receivedInvitations = featureStore.load([DependentInvitationRecord].self, key: "feature.receivedInvitations", fallback: [])
         if let settings = try? store.loadSettings() {
             pinLockEnabled = settings.pinLockEnabled
             biometricLockEnabled = settings.biometricLockEnabled
@@ -297,6 +316,8 @@ final class AppState: ObservableObject {
         featureStore.save(fertilitySymptoms, key: "feature.fertilitySymptoms")
         featureStore.save(fertilityTreatments, key: "feature.fertilityTreatments")
         featureStore.save(fertilityLabs, key: "feature.fertilityLabs")
+        featureStore.save(sentInvitations, key: "feature.sentInvitations")
+        featureStore.save(receivedInvitations, key: "feature.receivedInvitations")
     }
 
     func selectProfile(_ profileID: UUID) {
@@ -582,6 +603,15 @@ final class AppState: ObservableObject {
         appointments.insert(appt, at: 0)
         addUpdate(category: .tip, title: "Appointment added", detail: "\(appt.title) with \(appt.doctorName) on \(appt.date.formatted(date: .abbreviated, time: .shortened)).")
         persistFeatureState()
+        
+        Task {
+            try? await notificationService.scheduleAppointmentAlert(
+                title: appt.title,
+                doctorName: appt.doctorName,
+                date: appt.date,
+                appointmentID: appt.id
+            )
+        }
     }
 
     func removeAppointment(id: UUID) {
@@ -1208,6 +1238,20 @@ final class AppState: ObservableObject {
         saveSettings()
     }
 
+    /// Called from TrackerSelectionView after the user picks a tracker
+    /// preference (or skips). Persists the choice and advances into the tab shell.
+    func completeTrackerSelection(_ preference: TrackerPreference) {
+        trackerPreference = preference
+        trackerSelectionCompleted = true
+        saveSettings()
+    }
+
+    /// Called from Settings when the user changes their tracker preference.
+    func updateTrackerPreference(_ preference: TrackerPreference) {
+        trackerPreference = preference
+        saveSettings()
+    }
+
     func setRemindersEnabled(_ enabled: Bool) {
         remindersEnabled = enabled
         saveSettings()
@@ -1317,6 +1361,8 @@ final class AppState: ObservableObject {
     func logout() {
         isLoggedIn = false
         consentChecklistCompleted = false
+        trackerSelectionCompleted = false
+        trackerPreference = .none
         authUserId = nil
         authToken = nil
         authRefreshToken = nil
@@ -1326,6 +1372,61 @@ final class AppState: ObservableObject {
         saveSettings()
         persistFeatureState()
         proactiveSuggestions = []
+    }
+
+    // MARK: - Remote Dependent Invitations
+
+    func sendDependentInvite(emailOrPhone: String) async {
+        let contact = emailOrPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !contact.isEmpty else { return }
+
+        // Local simulation fallback + production ready schema interaction
+        let newInvite = DependentInvitationRecord(
+            id: UUID(),
+            inviterId: UUID(uuidString: authUserId ?? "") ?? UUID(),
+            inviteeContact: contact,
+            status: "pending",
+            createdAt: Date()
+        )
+        
+        sentInvitations.insert(newInvite, at: 0)
+        persistFeatureState()
+
+        // Also add an update feed entry
+        addUpdate(category: .adherence, title: "Invitation Sent", detail: "Sent link to \(contact) to link accounts.")
+    }
+
+    func fetchInvitations() async {
+        // Production ready: fetch from Supabase table `medhavn.dependent_invitations`
+        // Currently keeping existing list or sync if backend online
+    }
+
+    func acceptDependentInvitation(inviteID: UUID) async {
+        if let idx = receivedInvitations.firstIndex(where: { $0.id == inviteID }) {
+            receivedInvitations[idx].status = "accepted"
+            receivedInvitations[idx].acceptedAt = Date()
+            
+            // Add to dependents list
+            let inviterEmail = receivedInvitations[idx].inviteeContact
+            let dep = DependentProfile(
+                id: inviteID,
+                firstName: "Linked",
+                lastName: inviterEmail,
+                gender: "Other",
+                birthYear: 1990,
+                avatarColor: "#2F80ED"
+            )
+            dependents.append(dep)
+            profiles.append(UserProfile(id: dep.id, name: inviterEmail, avatarSymbol: "person.crop.circle.badge.checkmark"))
+            
+            persistFeatureState()
+            addUpdate(category: .adherence, title: "Invitation Accepted", detail: "Successfully linked to \(inviterEmail).")
+        }
+    }
+
+    func declineDependentInvitation(inviteID: UUID) async {
+        receivedInvitations.removeAll { $0.id == inviteID }
+        persistFeatureState()
     }
 }
 

@@ -1133,6 +1133,7 @@ struct AddDependentView: View {
         }
         .navigationTitle("Add Dependent")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }

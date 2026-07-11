@@ -41,6 +41,10 @@ struct PillboxView: View {
                 headerBar(score: score)
                     .staggeredEntrance(delay: 0.0)
 
+                // Running Appointments Marquee
+                appointmentsMarquee
+                    .staggeredEntrance(delay: 0.02)
+
                 if let profile = appState.selectedProfile {
                     Text("Welcome, \(profile.name)")
                         .font(.system(.title2, design: .rounded).weight(.bold))
@@ -61,34 +65,7 @@ struct PillboxView: View {
                     }
                 }
                 
-                Button {
-                    showWizard = true
-                } label: {
-                    HStack {
-                        Text("New supplement")
-                            .font(.system(.subheadline, design: .rounded).weight(.bold))
-                            .foregroundStyle(Color.black)
-                        
-                        Spacer()
-                        
-                        ZStack {
-                            Circle()
-                                .fill(Color.black)
-                                .frame(width: 28, height: 28)
-                            
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(AppTheme.primary)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(AppTheme.primary)
-                    .clipShape(Capsule())
-                    .shadow(color: AppTheme.primary.opacity(0.3), radius: 6, x: 0, y: 3)
-                }
-                .padding(.top, 12)
-                .staggeredEntrance(delay: 0.5)
+                // Bottom supplement button removed (moved to top header)
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, isRegular ? 24 : 16)
@@ -139,9 +116,52 @@ struct PillboxView: View {
                         .fill(AppTheme.cardBackground.opacity(0.5))
                 )
             } else {
-                ForEach(items) { item in
-                    MedicationCardView(item: item, block: block)
-                        .environmentObject(appState)
+                let pendingItems = items.filter { item in
+                    appState.statusForDose(itemID: item.id, block: block, date: appState.selectedPillboxDate) == .pending
+                }
+                let completedItems = items.filter { item in
+                    appState.statusForDose(itemID: item.id, block: block, date: appState.selectedPillboxDate) != .pending
+                }
+
+                if pendingItems.count > 3 {
+                    // Stacking Deck
+                    VStack(alignment: .leading, spacing: 14) {
+                        ZStack {
+                            ForEach(Array(pendingItems.prefix(3).enumerated().reversed()), id: \.element.id) { index, item in
+                                let isTop = index == 0
+                                MedicationCardView(item: item, block: block)
+                                    .environmentObject(appState)
+                                    .scaleEffect(isTop ? 1.0 : (1.0 - CGFloat(index) * 0.04))
+                                    .offset(y: isTop ? 0 : CGFloat(index) * 10)
+                                    .opacity(isTop ? 1.0 : (1.0 - Double(index) * 0.25))
+                                    .zIndex(Double(pendingItems.count - index))
+                                    .disabled(!isTop)
+                            }
+                        }
+                        .frame(minHeight: 160)
+                        
+                        Text("\(pendingItems.count) pending supplement(s) in this block")
+                            .font(.system(.caption, design: .rounded).weight(.bold))
+                            .foregroundStyle(AppTheme.primary)
+                            .padding(.horizontal, 4)
+                    }
+                } else {
+                    // Normal list
+                    ForEach(pendingItems) { item in
+                        MedicationCardView(item: item, block: block)
+                            .environmentObject(appState)
+                    }
+                }
+
+                // Show completed items inline below
+                if !completedItems.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(completedItems) { item in
+                            MedicationCardView(item: item, block: block)
+                                .environmentObject(appState)
+                                .opacity(0.6)
+                        }
+                    }
                 }
             }
         }
@@ -157,8 +177,8 @@ struct PillboxView: View {
     }
 
     private func headerBar(score: (taken: Int, total: Int)) -> some View {
-        HStack {
-            // "You" button — tap to switch profiles
+        HStack(spacing: 12) {
+            // Profile selector
             Menu {
                 ForEach(appState.profiles) { profile in
                     Button {
@@ -186,8 +206,8 @@ struct PillboxView: View {
                         .font(.system(size: 10, weight: .bold))
                 }
                 .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(AppTheme.cardBackground)
                 .clipShape(Capsule())
                 .overlay(
@@ -197,10 +217,68 @@ struct PillboxView: View {
             }
             .accessibilityLabel("Switch profile")
 
+            // New supplement shortcut button at the top
+            Button {
+                showWizard = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                    Text("Add")
+                }
+                .font(.system(.caption, design: .rounded).weight(.bold))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(AppTheme.primary)
+                .clipShape(Capsule())
+            }
+
             Spacer()
 
             // Compact supplement score badge
             CompactScoreBadge(taken: score.taken, total: score.total)
+        }
+    }
+
+    private var appointmentsMarquee: some View {
+        let calendar = Calendar.current
+        let todayOrTomorrowAppointments = appState.appointments.filter { appt in
+            calendar.isDateInToday(appt.date) || calendar.isDateInTomorrow(appt.date)
+        }
+
+        return Group {
+            if !todayOrTomorrowAppointments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 24) {
+                        ForEach(todayOrTomorrowAppointments) { appt in
+                            HStack(spacing: 8) {
+                                Image(systemName: "clock.fill")
+                                    .foregroundStyle(AppTheme.warning)
+                                    .font(.system(size: 12, weight: .bold))
+
+                                Text(calendar.isDateInToday(appt.date) ? "Today" : "Tomorrow")
+                                    .font(.system(.caption, design: .rounded).weight(.bold))
+                                    .foregroundStyle(AppTheme.warning)
+
+                                Text("\(appt.title) with \(appt.doctorName) at \(appt.date.formatted(date: .omitted, time: .shortened))")
+                                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppTheme.warning.opacity(0.24), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .frame(height: 32)
+                .padding(.vertical, 2)
+            }
         }
     }
 
@@ -457,123 +535,171 @@ struct MedicationCardView: View {
         }
     }
 
+    @State private var dragOffset: CGFloat = 0.0
+
     var body: some View {
         let status = appState.statusForDose(itemID: item.id, block: block, date: appState.selectedPillboxDate)
 
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                PillVisual(shape: item.pillShape, colorHex: item.pillColorHex)
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.name)
-                        .font(.system(.headline, design: .rounded).weight(.bold))
-                        .foregroundStyle(.white)
+        ZStack {
+            // Swipe Actions Background highlights
+            HStack {
+                if dragOffset > 0 {
+                    // Swiping Right -> Mark as Taken
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.black)
+                        Text("Taken")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.black)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(AppTheme.success)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                } else if dragOffset < 0 {
+                    // Swiping Left -> Mark as Skipped
+                    HStack {
+                        Spacer()
+                        Text("Skipped")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(AppTheme.danger)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    PillVisual(shape: item.pillShape, colorHex: item.pillColorHex)
                     
-                    Text("Dose: \(item.dosageText)")
-                        .font(.system(size: 13))
-                        .foregroundStyle(AppTheme.secondary)
-                    
-                    if !item.contraindicationTags.isEmpty {
-                        Text("Features: \(item.contraindicationTags.joined(separator: ", "))")
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.name)
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .foregroundStyle(.white)
+                        
+                        Text("Dose: \(item.dosageText)")
                             .font(.system(size: 13))
                             .foregroundStyle(AppTheme.secondary)
+                        
+                        if !item.contraindicationTags.isEmpty {
+                            Text("Features: \(item.contraindicationTags.joined(separator: ", "))")
+                               .font(.system(size: 13))
+                               .foregroundStyle(AppTheme.secondary)
+                        }
                     }
+                    Spacer()
+                    
+                    Menu {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .taken)
+                            }
+                        } label: {
+                            Label("Mark as Taken", systemImage: "checkmark.circle")
+                        }
+                        
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .skipped)
+                            }
+                        } label: {
+                            Label("Mark as Skipped", systemImage: "xmark.circle")
+                        }
+                        
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .pending)
+                            }
+                        } label: {
+                            Label("Mark as Pending", systemImage: "questionmark.circle")
+                        }
+                        
+                        Divider()
+                        
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete Medication", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(AppTheme.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Options for \(item.name)")
                 }
-                Spacer()
-                
-                Menu {
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .taken)
-                        }
-                    } label: {
-                        Label("Mark as Taken", systemImage: "checkmark.circle")
-                    }
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .skipped)
-                        }
-                    } label: {
-                        Label("Mark as Skipped", systemImage: "xmark.circle")
-                    }
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .pending)
-                        }
-                    } label: {
-                        Label("Mark as Pending", systemImage: "questionmark.circle")
-                    }
-                    
-                    Divider()
-                    
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete Medication", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AppTheme.secondary)
-                        .padding(8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Options for \(item.name)")
-            }
 
-            Divider()
-                .background(Color.white.opacity(0.08))
+                Divider()
+                    .background(Color.white.opacity(0.08))
 
-            HStack {
-                let timeStr = scheduledTimeString(for: item, block: block)
-                let isMissed = appState.selectedPillboxDate < Calendar.current.startOfDay(for: Date()) && status != .taken
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 12))
-                    Text("To take: at \(timeStr)")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .foregroundStyle(isMissed ? AppTheme.danger : AppTheme.secondary)
-                
-                Spacer()
-                
-                Button {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
+                HStack {
+                    let timeStr = scheduledTimeString(for: item, block: block)
+                    let isMissed = appState.selectedPillboxDate < Calendar.current.startOfDay(for: Date()) && status != .taken
                     
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                        if status == .taken {
-                            appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .pending)
-                        } else {
-                            appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .taken)
-                        }
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 12))
+                        Text("To take: at \(timeStr)")
+                            .font(.system(size: 12, weight: .semibold))
                     }
-                } label: {
-                    ZStack {
-                        if status == .taken {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 26, height: 26)
-                            
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(Color.black)
-                        } else {
-                            Circle()
-                                .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                .frame(width: 26, height: 26)
-                        }
+                    .foregroundStyle(isMissed ? AppTheme.danger : AppTheme.secondary)
+                    
+                    Spacer()
+                    
+                    // Simple Status indicators
+                    if status == .taken {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(AppTheme.success)
+                    } else if status == .skipped {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppTheme.danger)
+                    } else {
+                        Image(systemName: "circle")
+                            .foregroundStyle(Color.white.opacity(0.3))
                     }
                 }
-                .buttonStyle(.plain)
             }
+            .padding(18)
+            .glassCard()
+            .offset(x: dragOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged { gesture in
+                        dragOffset = gesture.translation.width
+                    }
+                    .onEnded { gesture in
+                        let threshold: CGFloat = 110.0
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        
+                        if gesture.translation.width > threshold {
+                            generator.impactOccurred()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .taken)
+                            }
+                        } else if gesture.translation.width < -threshold {
+                            generator.impactOccurred()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                appState.markDose(itemID: item.id, block: block, date: appState.selectedPillboxDate, status: .skipped)
+                            }
+                        }
+                        
+                        withAnimation(.spring()) {
+                            dragOffset = 0.0
+                        }
+                    }
+            )
         }
-        .padding(18)
-        .glassCard()
         .alert("Remove this medication?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) {
                 appState.removeMedCabinetItem(id: item.id)

@@ -48,6 +48,11 @@ struct MedhavnApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .background { appState.lockApp() }
                 }
+                .onOpenURL { url in
+                    if InviteLinkHandler.shared.handle(url: url) {
+                        appState.pendingInvitationID = InviteLinkHandler.shared.pendingInvitationID
+                    }
+                }
         }
         .windowResizability(.automatic)
     }
@@ -55,7 +60,7 @@ struct MedhavnApp: App {
 
 struct RootView: View, AppStateProvider {
     @EnvironmentObject private var appState: AppState
-    @State private var selectedTab: AppTab = .doseMap
+    @State private var selectedTab: AppTab = .home
 
     var currentAppState: AppState { appState }
 
@@ -77,11 +82,22 @@ struct RootView: View, AppStateProvider {
                 LoginView()
             } else if !appState.consentChecklistCompleted {
                 ConsentChecklistView()
+            } else if !appState.trackerSelectionCompleted {
+                TrackerSelectionView()
             } else {
                 tabShell
                 .sheet(isPresented: $appState.showUpgradeSheet) {
                     UpgradeSheetView()
                         .environmentObject(appState)
+                }
+                .sheet(isPresented: Binding(
+                    get: { appState.pendingInvitationID != nil },
+                    set: { val in if !val { appState.pendingInvitationID = nil } }
+                )) {
+                    if let inviteID = appState.pendingInvitationID {
+                        LinkConsentView(invitationID: inviteID, inviterContact: "proposed-inviter@medhavn.com")
+                            .environmentObject(appState)
+                    }
                 }
             }
             }
@@ -99,16 +115,28 @@ struct RootView: View, AppStateProvider {
     private var tabShell: some View {
         TabView(selection: $selectedTab) {
             NavigationStack { PillboxView().scrollContentBackground(.hidden) }
-                .tag(AppTab.doseMap)
-                .tabItem { Label("DoseMap", systemImage: "calendar.badge.clock") }
+                .tag(AppTab.home)
+                .tabItem { Label("Home", systemImage: "house.fill") }
 
             NavigationStack { UpdatesFeedView().scrollContentBackground(.hidden) }
                 .tag(AppTab.timeline)
                 .tabItem { Label("Timeline", systemImage: "clock.arrow.circlepath") }
 
-            NavigationStack { ReportsDashboardView().scrollContentBackground(.hidden) }
-                .tag(AppTab.insights)
-                .tabItem { Label("Insights", systemImage: "waveform.path.ecg") }
+            // Dynamic 3rd tab — swaps based on tracker preference
+            switch appState.trackerPreference {
+            case .period:
+                NavigationStack { PeriodTrackerView().scrollContentBackground(.hidden) }
+                    .tag(AppTab.periodTracker)
+                    .tabItem { Label("Period", systemImage: "drop.fill") }
+            case .fertility:
+                NavigationStack { FertilityTrackerView().scrollContentBackground(.hidden) }
+                    .tag(AppTab.fertilityTracker)
+                    .tabItem { Label("Fertility", systemImage: "heart.circle.fill") }
+            case .none:
+                NavigationStack { ReportsDashboardView().scrollContentBackground(.hidden) }
+                    .tag(AppTab.insights)
+                    .tabItem { Label("Insights", systemImage: "waveform.path.ecg") }
+            }
 
             NavigationStack { MedCabinetView().scrollContentBackground(.hidden) }
                 .tag(AppTab.vault)
@@ -128,30 +156,13 @@ struct RootView: View, AppStateProvider {
     }
 }
 
-private enum AppTab: CaseIterable {
-    case doseMap
+private enum AppTab: Hashable {
+    case home
     case timeline
-    case insights
+    case insights          // Used when trackerPreference == .none
+    case periodTracker     // Used when trackerPreference == .period
+    case fertilityTracker  // Used when trackerPreference == .fertility
     case vault
     case hub
-
-    var title: String {
-        switch self {
-        case .doseMap: return "DoseMap"
-        case .timeline: return "Timeline"
-        case .insights: return "Insights"
-        case .vault: return "Vault"
-        case .hub: return "Hub"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .doseMap: return "calendar.badge.clock"
-        case .timeline: return "clock.arrow.circlepath"
-        case .insights: return "waveform.path.ecg"
-        case .vault: return "lock.doc.fill"
-        case .hub: return "square.grid.2x2.fill"
-        }
-    }
 }
+

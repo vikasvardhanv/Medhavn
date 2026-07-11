@@ -591,6 +591,25 @@ struct FertilityLabRecord: Identifiable, Codable {
     }
 }
 
+// MARK: - Tracker Preference
+
+/// Determines which view occupies the third tab bar slot.
+/// When `.period` or `.fertility` is chosen the Insights dashboard
+/// moves into the Hub; when `.none` (the default) Insights stays in the tab bar.
+enum TrackerPreference: String, Codable, CaseIterable {
+    case none       // Default — show Insights in tab bar
+    case period     // Show Period Tracker in tab bar
+    case fertility  // Show Fertility Tracker in tab bar
+
+    var displayName: String {
+        switch self {
+        case .none:      return "Insights (Default)"
+        case .period:    return "Period Tracker"
+        case .fertility: return "Fertility Tracker"
+        }
+    }
+}
+
 // MARK: - App Settings (persisted)
 
 struct AppSettings: Codable {
@@ -610,6 +629,8 @@ struct AppSettings: Codable {
     var pinLockEnabled: Bool
     var pinHash: String          // SHA-256 hex of the user's 4-digit PIN
     var biometricLockEnabled: Bool
+    var trackerPreference: TrackerPreference
+    var trackerSelectionCompleted: Bool
 
     static let `default` = AppSettings(
         firstUseDate: Date(),
@@ -627,7 +648,9 @@ struct AppSettings: Codable {
         hasPaid: false,
         pinLockEnabled: false,
         pinHash: "",
-        biometricLockEnabled: false
+        biometricLockEnabled: false,
+        trackerPreference: .none,
+        trackerSelectionCompleted: false
     )
 
     enum CodingKeys: String, CodingKey {
@@ -647,6 +670,8 @@ struct AppSettings: Codable {
         case pinLockEnabled
         case pinHash
         case biometricLockEnabled
+        case trackerPreference
+        case trackerSelectionCompleted
     }
 
     init(
@@ -665,7 +690,9 @@ struct AppSettings: Codable {
         hasPaid: Bool,
         pinLockEnabled: Bool = false,
         pinHash: String = "",
-        biometricLockEnabled: Bool = false
+        biometricLockEnabled: Bool = false,
+        trackerPreference: TrackerPreference = .none,
+        trackerSelectionCompleted: Bool = false
     ) {
         self.firstUseDate = firstUseDate
         self.cloudConsent = cloudConsent
@@ -683,6 +710,8 @@ struct AppSettings: Codable {
         self.pinLockEnabled = pinLockEnabled
         self.pinHash = pinHash
         self.biometricLockEnabled = biometricLockEnabled
+        self.trackerPreference = trackerPreference
+        self.trackerSelectionCompleted = trackerSelectionCompleted
     }
 
     init(from decoder: Decoder) throws {
@@ -703,5 +732,7 @@ struct AppSettings: Codable {
         pinLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .pinLockEnabled) ?? false
         pinHash = try container.decodeIfPresent(String.self, forKey: .pinHash) ?? ""
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
+        trackerPreference = try container.decodeIfPresent(TrackerPreference.self, forKey: .trackerPreference) ?? .none
+        trackerSelectionCompleted = try container.decodeIfPresent(Bool.self, forKey: .trackerSelectionCompleted) ?? false
     }
 }

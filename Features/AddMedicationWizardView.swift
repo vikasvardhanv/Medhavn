@@ -723,6 +723,11 @@ struct AddMedicationWizardView: View {
     }
 
     private func processScannedText(_ text: String) {
+        // Clear previous state first
+        name = ""
+        dosageText = "1 pill"
+        tags = ""
+
         // Use the same NLP engine that AddPlanView uses
         let output = appState.engine.process(text: text, projectionDays: 60)
         let parsed = output.parsed
@@ -730,6 +735,19 @@ struct AddMedicationWizardView: View {
         // Medication name
         if let drugName = parsed.drugName {
             name = drugName
+        } else {
+            // Regex fallback for name (often first line or near "Rx" / "Take")
+            let lines = text.components(separatedBy: "\n")
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.contains("Rx") || trimmed.contains("Take") || trimmed.contains("Supplement") {
+                    let cleaned = trimmed.replacingOccurrences(of: "Rx", with: "").replacingOccurrences(of: "Take", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !cleaned.isEmpty {
+                        name = cleaned
+                        break
+                    }
+                }
+            }
         }
 
         // Dosage: combine numeric dose with units
@@ -740,6 +758,18 @@ struct AddMedicationWizardView: View {
             dosageText = "\(formattedDose) \(units)"
         } else if let dose = parsed.dose {
             dosageText = "\(dose) pill"
+        } else {
+            // Regex fallback for dose/strength (e.g. "500mg" or "10 mg" or "2 tablets")
+            let pattern = "(\\d+(?:\\.\\d+)?)\\s*(mg|mcg|ml|g|tabs?|caps?|tablets?|pills?|capsules?)"
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               let match = regex.firstMatch(in: text, options: [], range: NSRange(text.startIndex..., in: text)) {
+                if let doseRange = Range(match.range(at: 1), in: text),
+                   let unitRange = Range(match.range(at: 2), in: text) {
+                    let doseVal = String(text[doseRange])
+                    let unitVal = String(text[unitRange])
+                    dosageText = "\(doseVal) \(unitVal)"
+                }
+            }
         }
 
         // Frequency mapping from engine's Frequency to wizard's MedFrequency + timesPerDay

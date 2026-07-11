@@ -134,6 +134,16 @@ public struct MoreHubView: View {
                 .padding(.horizontal, 4)
 
             VStack(spacing: 1) {
+                // Show Insights here when a tracker occupies the tab bar slot
+                if appState.trackerPreference != .none {
+                    hubRow(icon: "waveform.path.ecg", color: AppTheme.info, title: "Insights",
+                           subtitle: "Adherence reports & trends") {
+                        ReportsDashboardView().environmentObject(appState)
+                    }
+
+                    Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                }
+
                 hubRow(icon: "waveform.path.ecg.rectangle", color: AppTheme.danger, title: "Measurements",
                        subtitle: "Vitals, biometrics & wellness") {
                     MeasurementsListView().environmentObject(appState)
@@ -220,9 +230,9 @@ public struct MoreHubView: View {
                 
                 Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
 
-                hubRow(icon: "figure.2.and.child.holdinghands", color: AppTheme.accentTeal, title: "Parent Care",
-                       subtitle: "\(appState.unresolvedParentMissedDoseAlerts().count) missed-dose alerts") {
-                    ParentCareView().environmentObject(appState)
+                hubRow(icon: "person.badge.plus", color: AppTheme.accentTeal, title: "Add Dependent",
+                       subtitle: "Manage offline & online dependents") {
+                    ManageDependentsView().environmentObject(appState)
                 }
 
                 Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)

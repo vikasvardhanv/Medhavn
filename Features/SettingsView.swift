@@ -10,6 +10,8 @@ struct SettingsView: View {
             VStack(spacing: 24) {
                 securitySection
                     .staggeredEntrance(delay: 0.0)
+                tabBarLayoutSection
+                    .staggeredEntrance(delay: 0.03)
                 accountSection
                     .staggeredEntrance(delay: 0.06)
                 trialSection
@@ -74,6 +76,38 @@ struct SettingsView: View {
                         showPINSetup = true
                     }
                 }
+            }
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 24)
+    }
+
+    private var tabBarLayoutSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader("Tab Bar Layout", icon: "rectangle.split.3x1.fill")
+
+            VStack(spacing: 1) {
+                HStack {
+                    Text("Third Tab")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Picker("", selection: Binding(
+                        get: { appState.trackerPreference },
+                        set: { newVal in appState.updateTrackerPreference(newVal) }
+                    )) {
+                        ForEach(TrackerPreference.allCases, id: \.self) { pref in
+                            Text(pref.displayName).tag(pref)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(AppTheme.primary)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 16)
+                settingInfoRow("Choose which tracker appears in your tab bar. Insights will move to Hub when a tracker is selected.")
             }
         }
         .padding(16)

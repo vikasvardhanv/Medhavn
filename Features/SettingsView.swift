@@ -248,11 +248,17 @@ struct SettingsView: View {
 
     private var logoutSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Session", icon: "arrowshape.left.circle.fill")
+            sectionHeader("Session & Account", icon: "arrowshape.left.circle.fill")
 
             VStack(spacing: 1) {
                 settingButton("Logout", icon: "arrowshape.left.circle.fill", isDestructive: true) {
                     appState.logout()
+                }
+
+                Divider().background(Color.white.opacity(0.15))
+
+                settingButton("Delete Profile completely", icon: "trash.fill", isDestructive: true) {
+                    appState.deleteAccountAndWipeData()
                 }
             }
         }

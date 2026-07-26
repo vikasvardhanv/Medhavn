@@ -252,6 +252,25 @@ var body: some View {
                         .font(.body.weight(.bold))
                 }
             }
+            .sheet(isPresented: $showScanner) {
+                ScannerSheetView(scannedText: $appState.ingestionText)
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.text, .pdf, .image],
+                allowsMultipleSelection: false,
+                onCompletion: handleFileImport
+            )
+            .alert("Import Error", isPresented: $showImportAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importAlertMessage)
+            }
+            .alert("Scanner Access", isPresented: $showScannerAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(scannerAlertMessage)
+            }
         }
     }
 
@@ -520,7 +539,7 @@ var body: some View {
     @ViewBuilder
     private var buildSuccessSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Added to your Vault!", systemImage: "checkmark.circle.fill")
+            Label("Added to your Pharmacy!", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(AppTheme.success)
                 .font(.subheadline.weight(.semibold))
             if sessionAddedCount > 0 {
@@ -752,7 +771,7 @@ var body: some View {
                     }
                 }
             } label: {
-                Label("Add Parsed Medication to Vault", systemImage: "lock.doc.fill")
+                Label("Add Parsed Medication to Pharmacy", systemImage: "pills.fill")
                     .frame(maxWidth: .infinity)
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.black)
@@ -763,7 +782,7 @@ var body: some View {
 
             if showMedCabinetConfirm {
                 VStack(alignment: .leading, spacing: 4) {
-                    Label("\(justAddedMedName) added to Vault.", systemImage: "checkmark.circle.fill")
+                    Label("\(justAddedMedName) added to Pharmacy.", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(AppTheme.success)
                         .font(.subheadline.weight(.semibold))
                     Text("You can add another medication now.")

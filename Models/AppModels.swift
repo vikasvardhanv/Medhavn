@@ -332,6 +332,7 @@ struct AppointmentRecord: Identifiable, Codable {
     var doctorName: String
     var date: Date
     var notes: String
+    var type: String = "Routine Checkup"
 }
 
 // MARK: - Doctors

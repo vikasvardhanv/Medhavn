@@ -263,7 +263,7 @@ private struct IntuioChatSheetView: View {
             let reply: String
             if useModel {
                 reply = await withTaskGroup(of: String.self) { group in
-                    group.addTask { await self.chatEngine.generateReply(for: text, history: turns) }
+                    group.addTask { await self.chatEngine.generateReply(for: text, history: turns, appState: self.appState) }
                     group.addTask {
                         try? await Task.sleep(for: .seconds(20))
                         return "I'm sorry, generating a response took too long. Please try again."
@@ -273,7 +273,7 @@ private struct IntuioChatSheetView: View {
                     return result
                 }
             } else {
-                reply = chatEngine.fallbackReplyPublic(for: text)
+                reply = chatEngine.fallbackReplyPublic(for: text, appState: appState)
             }
             messages.append(IntuioChatMessage(role: .assistant, text: reply))
             isSending = false

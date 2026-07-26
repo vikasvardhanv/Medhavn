@@ -30,10 +30,11 @@ enum IntuioAssistantRole {
     case assistant
 }
 
+@MainActor
 protocol IntuioAssistantChatting {
     var modelName: String { get }
     func warmup() async -> Bool
-    func generateReply(for userText: String, history: [IntuioAssistantTurn]) async -> String
+    func generateReply(for userText: String, history: [IntuioAssistantTurn], appState: AppState?) async -> String
 }
 
 enum IntuioLocalNoteEngineFactory {
@@ -133,6 +134,7 @@ struct IntuioMLXNoteEngine: IntuioLocalNoteGenerating {
     #endif
 }
 
+@MainActor
 struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     let modelName: String
 
@@ -168,8 +170,8 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         #endif
     }
 
-    func generateReply(for userText: String, history: [IntuioAssistantTurn]) async -> String {
-        let prompt = buildPrompt(userText: userText, history: history)
+    func generateReply(for userText: String, history: [IntuioAssistantTurn], appState: AppState?) async -> String {
+        let prompt = buildPrompt(userText: userText, history: history, appState: appState)
 
         #if canImport(MLX) && canImport(MLXLLM) && canImport(MLXLMCommon) && !targetEnvironment(simulator)
         print("[IntuioChat] 🧠 Sending to MLX engine (\(modelName)), prompt length: \(prompt.count) chars")
@@ -190,13 +192,23 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         print("[IntuioChat] ⚠️ generateReply called but MLX not available (Simulator). Using rule-based reply for: \(userText.prefix(80))")
         #endif
 
-        let reply = fallbackReply(for: userText)
+        let reply = fallbackReply(for: userText, appState: appState)
         print("[IntuioChat] 📋 Fallback reply: \(reply.prefix(100))")
         return reply
     }
 
-    private func buildPrompt(userText: String, history: [IntuioAssistantTurn]) -> String {
-        let recentHistory = history.suffix(8)
+    private func buildPrompt(userText: String, history: [IntuioAssistantTurn], appState: AppState?) -> String {
+        let apptsStr: String
+        let medsStr: String
+        if let appState = appState {
+            apptsStr = appState.appointments.map { "\($0.title) with \($0.doctorName) (\($0.type)) on \($0.date.formatted())" }.joined(separator: ", ")
+            medsStr = appState.medCabinetItems.map { "\($0.name) (\($0.remainingPills) remaining)" }.joined(separator: ", ")
+        } else {
+            apptsStr = "None"
+            medsStr = "None"
+        }
+
+        let recentHistory = history.suffix(6)
         let historyLines = recentHistory.map { turn in
             let role = turn.role == .user ? "User" : "Assistant"
             return "\(role): \(turn.text)"
@@ -204,6 +216,8 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
 
         return """
         You are Intuio, a concise medication support assistant in a patient app.
+        Current Appointments: \(apptsStr)
+        Current Medications: \(medsStr)
         Keep responses short, practical, and safety-first.
         Never diagnose, never prescribe medication changes, and recommend clinician/pharmacist review for uncertainty.
 
@@ -214,12 +228,76 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         """
     }
 
-    func fallbackReplyPublic(for userText: String) -> String {
-        fallbackReply(for: userText)
+    func fallbackReplyPublic(for userText: String, appState: AppState?) -> String {
+        fallbackReply(for: userText, appState: appState)
     }
 
-    private func fallbackReply(for userText: String) -> String {
+    private func fallbackReply(for userText: String, appState: AppState?) -> String {
         let q = userText.lowercased()
+
+        // Tools execution via keywords
+        if q.contains("schedule") || q.contains("add appointment") || q.contains("book") {
+            if let appState = appState {
+                let type: String
+                if q.contains("fast") || q.contains("lab") {
+                    type = "Fasting Lab"
+                } else if q.contains("blood") {
+                    type = "Blood Test"
+                } else if q.contains("vacc") {
+                    type = "Vaccination"
+                } else {
+                    type = "Routine Checkup"
+                }
+                
+                var doctor = "General Practitioner"
+                if q.contains("smith") {
+                    doctor = "Dr. Smith"
+                } else if q.contains("joe") {
+                    doctor = "Dr. Joe"
+                }
+                
+                let title = q.contains("dentist") ? "Dental Appointment" : "\(type) Appointment"
+                let date = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                let newAppt = AppointmentRecord(id: UUID(), title: title, doctorName: doctor, date: date, notes: "Added automatically by Intuio AI assistant.", type: type)
+                appState.addAppointment(newAppt)
+                return "I have successfully scheduled a \(title) with \(doctor) for tomorrow at \(date.formatted(date: .omitted, time: .shortened))."
+            }
+        }
+        
+        if q.contains("my appointments") || q.contains("what appointments") || q.contains("list appointments") || q.contains("upcoming appointments") {
+            if let appState = appState {
+                let list = appState.appointments
+                if list.isEmpty {
+                    return "You have no upcoming appointments scheduled."
+                }
+                let itemsText = list.map { "- \($0.title) with \($0.doctorName) on \($0.date.formatted(date: .abbreviated, time: .shortened)) (\($0.type))" }.joined(separator: "\n")
+                return "Here are your scheduled appointments:\n\(itemsText)"
+            }
+        }
+
+        if q.contains("refill") && (q.contains("order") || q.contains("request") || q.contains("place")) {
+            if let appState = appState {
+                if let item = appState.medCabinetItems.first(where: { $0.remainingPills <= $0.refillThreshold }) {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        await MainActor.run {
+                            appState.refillMedCabinetItem(id: item.id, amount: 30)
+                            appState.addUpdate(category: .refill, title: "Refill request sent", detail: "Placed automatic refill order for \(item.name) at CVS pharmacy.")
+                        }
+                    }
+                    return "I've dispatched an automatic refill request for \(item.name) to your connected pharmacy (CVS). You will receive a notification when it's ready."
+                } else if let first = appState.medCabinetItems.first {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        await MainActor.run {
+                            appState.refillMedCabinetItem(id: first.id, amount: 30)
+                            appState.addUpdate(category: .refill, title: "Refill request sent", detail: "Placed automatic refill order for \(first.name) at CVS pharmacy.")
+                        }
+                    }
+                    return "I've dispatched an automatic refill request for \(first.name) to your connected pharmacy (CVS)."
+                }
+            }
+        }
 
         // Missed / late dose
         if q.contains("miss") || q.contains("forgot") || q.contains("late") || q.contains("skip") {
@@ -235,19 +313,19 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         }
         // Interaction
         if q.contains("interact") || q.contains("combine") || q.contains("together") || q.contains("mix") {
-            return "Drug interactions can be serious. Use the Interactions Checker in Hub → Safety to scan your vault, and always confirm with your pharmacist before combining medications."
+            return "Drug interactions can be serious. Use the Interactions Checker in Hub → Safety to scan your pharmacy, and always confirm with your pharmacist before combining medications."
         }
-        // Refill / running out
+        // Refill / running out general info
         if q.contains("refill") || q.contains("running out") || q.contains("pills left") || q.contains("prescription") {
-            return "You can track pills remaining and set refill reminders in your Vault. Contact your pharmacy or clinician a few days before running out to avoid interruption."
+            return "You can track pills remaining and request refills in your Pharmacy tab. Contact your pharmacy or clinician a few days before running out to avoid interruption."
         }
         // Schedule / reminder
         if q.contains("remind") || q.contains("schedule") || q.contains("when") || q.contains("time") {
-            return "Your dose schedule is set up in the Vault. Check your DoseMap tab to see today's upcoming doses and mark them as taken."
+            return "Your dose schedule is set up in the Pharmacy. Check your Home tab to see today's upcoming doses and mark them as taken."
         }
         // Medication access / what meds
         if q.contains("access") || q.contains("my medication") || q.contains("what med") || q.contains("know about") {
-            return "I can see your medications in the Vault and your dose history on the DoseMap. Ask me about a specific medication, schedule, or interaction and I'll give you details."
+            return "I can see your medications in the Pharmacy and your dose history on the Home tab. Ask me about a specific medication, schedule, or interaction and I'll give you details."
         }
         // Food / alcohol
         if q.contains("food") || q.contains("eat") || q.contains("alcohol") || q.contains("drink") {
@@ -263,14 +341,14 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         }
         // Greeting
         if q.contains("hello") || q.contains("hi") || q == "hey" {
-            return "Hi! I'm Intuio, your on-device medication assistant. Ask me about your schedule, missed doses, interactions, refills, or anything about your medications."
+            return "Hi! I'm Intuio, your on-device medication assistant. Ask me about your schedule, missed doses, interactions, refills, or scheduling appointments."
         }
         // Thanks
         if q.contains("thank") || q.contains("great") || q.contains("awesome") {
             return "Happy to help! Let me know if you have any other questions about your medications."
         }
 
-        return "I can help with your medication schedule, missed doses, interactions, refill tracking, and safety questions. What would you like to know?"
+        return "I can help with your medication schedule, missed doses, interactions, refill tracking, appointments, and safety questions. What would you like to know?"
     }
 
     private func breakFallback(error: Error) {

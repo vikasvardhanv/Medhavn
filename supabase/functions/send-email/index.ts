@@ -1,9 +1,9 @@
 // @ts-nocheck
 // Supabase Edge Function: send-email
-// Sends transactional emails via Resend. API key is stored as a Supabase secret.
+// Sends transactional emails via GoDaddy SMTP.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { Resend } from "npm:resend@^2.0.0";
+import nodemailer from "npm:nodemailer@^6.9.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,26 +28,33 @@ serve(async (req: Request) => {
   }
 
   try {
-    const apiKey = Deno.env.get("RESEND_API_KEY");
-    if (!apiKey) {
-      return json({ error: "RESEND_API_KEY secret is not set" }, 500);
-    }
-
     const body = (await req.json()) as SendEmailRequest;
-    const { to, subject, html, from = "medhavnapp@resend.dev" } = body;
+    const { to, subject, html, from = "info@mastov.com" } = body;
 
     if (!to || !subject || !html) {
       return json({ error: "Missing required fields: to, subject, html" }, 400);
     }
 
-    const resend = new Resend(apiKey);
-    const { data, error } = await resend.emails.send({ from, to, subject, html });
+    const transporter = nodemailer.createTransport({
+      host: "smtpout.secureserver.net",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "info@mastov.com",
+        pass: "Mashtov#2026",
+      },
+    });
 
-    if (error) {
-      return json({ error: error.message }, 502);
-    }
+    const mailOptions = {
+      from,
+      to,
+      subject,
+      html,
+    };
 
-    return json({ id: data?.id });
+    const info = await transporter.sendMail(mailOptions);
+
+    return json({ success: true, messageId: info.messageId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
     return json({ error: message }, 500);

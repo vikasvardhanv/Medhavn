@@ -235,6 +235,19 @@ struct PillboxView: View {
 
             Spacer()
 
+            // Compact points badge
+            HStack(spacing: 4) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                Text("\(appState.userHealthPoints)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(.black)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AppTheme.primary)
+            .clipShape(Capsule())
+
             // Compact supplement score badge
             CompactScoreBadge(taken: score.taken, total: score.total)
         }

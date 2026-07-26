@@ -23,6 +23,10 @@ struct LoginView: View {
     @State private var fullName = ""
     @State private var confirmPassword = ""
     @State private var showForgotPassword = false
+    @State private var showOTPVerification = false
+    @State private var enteredOTP = ""
+    @State private var isSendingOTP = false
+    @State private var otpError: String? = nil
 
     private var isPad: Bool { hSizeClass == .regular }
 
@@ -120,14 +124,23 @@ struct LoginView: View {
                                     }
                                 }
 
-                                Button(mode == .login ? "Login" : "Create Account") {
+                                Button(mode == .login ? "Login" : (isSendingOTP ? "Sending Code..." : "Create Account")) {
                                     Task {
                                         if mode == .signup {
                                             guard password == confirmPassword else {
                                                 appState.authErrorMessage = "Passwords do not match."
                                                 return
                                             }
-                                            _ = await appState.signup(email: email, password: password, fullName: fullName)
+                                            isSendingOTP = true
+                                            let sent = await appState.sendSignupOTP(email: email)
+                                            isSendingOTP = false
+                                            if sent {
+                                                enteredOTP = ""
+                                                otpError = nil
+                                                showOTPVerification = true
+                                            } else {
+                                                appState.authErrorMessage = "Failed to send verification code email. Please check your email and try again."
+                                            }
                                         } else {
                                             _ = await appState.login(email: email, password: password)
                                         }
@@ -191,6 +204,92 @@ struct LoginView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .sheet(isPresented: $showForgotPassword) {
                 ForgotPasswordView()
+            }
+            .sheet(isPresented: $showOTPVerification) {
+                NavigationStack {
+                    ZStack {
+                        MeshBackgroundView()
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 24) {
+                            Text("Verify Your Email")
+                                .font(.title.weight(.bold))
+                                .foregroundStyle(.white)
+                            
+                            Text("We've sent a 6-digit verification code to \(email). Please enter it below to complete your registration.")
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            VStack(spacing: 12) {
+                                TextField("Enter 6-Digit Code", text: $enteredOTP)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.center)
+                                    .font(.title2.weight(.bold))
+                                    .padding(16)
+                                    .background(Color.primary.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    )
+                                
+                                if let otpError {
+                                    Text(otpError)
+                                        .foregroundStyle(AppTheme.danger)
+                                        .font(.caption)
+                                }
+                            }
+                            .padding(.horizontal)
+                            
+                            Button {
+                                if appState.verifySignupOTP(code: enteredOTP) {
+                                    Task {
+                                        let success = await appState.signup(email: email, password: password, fullName: fullName)
+                                        if success {
+                                            showOTPVerification = false
+                                        } else {
+                                            otpError = appState.authErrorMessage ?? "Registration failed."
+                                        }
+                                    }
+                                } else {
+                                    otpError = "Incorrect code. Please try again."
+                                }
+                            } label: {
+                                Text("Verify & Create Account")
+                                    .font(.headline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(AppTheme.primary)
+                                    .foregroundStyle(.black)
+                                    .clipShape(Capsule())
+                            }
+                            .disabled(enteredOTP.count < 6)
+                            .padding(.horizontal)
+                            
+                            Button("Resend Code") {
+                                Task {
+                                    otpError = nil
+                                    _ = await appState.sendSignupOTP(email: email)
+                                }
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.primary)
+                        }
+                        .padding()
+                        .glassCard(cornerRadius: 24)
+                        .padding()
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                showOTPVerification = false
+                            }
+                            .foregroundStyle(.white)
+                        }
+                    }
+                }
             }
         }
     }
@@ -358,9 +457,20 @@ struct ConsentChecklistView: View {
                                     .foregroundStyle(.primary.opacity(0.75))
                             }
 
-                            Text("REQUIRED CONSENT CHECKLIST")
-                                .font(.headline)
-                                .foregroundStyle(.white.opacity(0.7))
+                            HStack {
+                                Text("REQUIRED CONSENT CHECKLIST")
+                                    .font(.headline)
+                                    .foregroundStyle(.white.opacity(0.7))
+                                Spacer()
+                                Button("Accept All") {
+                                    acknowledgeEducationalOnly = true
+                                    acknowledgeConfirmClinician = true
+                                    acknowledgePrivacyPolicy = true
+                                    acknowledgeProcessingConsent = true
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.primary)
+                            }
 
                             VStack(spacing: isPad ? 16 : 12) {
                                 consentRow(

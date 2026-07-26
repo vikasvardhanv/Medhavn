@@ -3,15 +3,22 @@ import MedicationLogicEngine
 
 public struct MoreHubView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var referralEmail = ""
+    @State private var showReferralAlert = false
+    @State private var referralAlertMessage = ""
 
     public init() {}
 
     public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                // Health Points Gamification Badge
+                pointsBadge
+                    .staggeredEntrance(delay: 0.0)
+
                 // Profiles section
                 profilesSection
-                    .staggeredEntrance(delay: 0.0)
+                    .staggeredEntrance(delay: 0.04)
 
                 // Health tools section
                 healthToolsSection
@@ -19,15 +26,23 @@ public struct MoreHubView: View {
 
                 // Safety tools section
                 safetySection
+                    .staggeredEntrance(delay: 0.12)
+
+                // Apple Watch Section
+                appleWatchSection
                     .staggeredEntrance(delay: 0.16)
+
+                // Referral Section
+                referralSection
+                    .staggeredEntrance(delay: 0.20)
 
                 // Fertility tracking section
                 fertilitySection
-                    .staggeredEntrance(delay: 0.20)
+                    .staggeredEntrance(delay: 0.24)
 
                 // AI Engine & Settings Tools
                 toolsSection
-                    .staggeredEntrance(delay: 0.24)
+                    .staggeredEntrance(delay: 0.28)
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -53,6 +68,27 @@ public struct MoreHubView: View {
                 .accessibilityLabel("Open Settings")
             }
         }
+    }
+
+    private var pointsBadge: some View {
+        HStack {
+            Image(systemName: "sparkles")
+                .foregroundStyle(AppTheme.primary)
+                .font(.title3.weight(.bold))
+            Text("Your Health Points:")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+            Spacer()
+            Text("\(appState.userHealthPoints) PTS")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(AppTheme.primary)
+                .clipShape(Capsule())
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 16)
     }
 
     private var profilesSection: some View {
@@ -134,15 +170,19 @@ public struct MoreHubView: View {
                 .padding(.horizontal, 4)
 
             VStack(spacing: 1) {
-                // Show Insights here when a tracker occupies the tab bar slot
-                if appState.trackerPreference != .none {
-                    hubRow(icon: "waveform.path.ecg", color: AppTheme.info, title: "Insights",
-                           subtitle: "Adherence reports & trends") {
-                        ReportsDashboardView().environmentObject(appState)
-                    }
-
-                    Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+                hubRow(icon: "waveform.path.ecg", color: AppTheme.info, title: "Insights",
+                       subtitle: "Adherence reports & trends") {
+                    ReportsDashboardView().environmentObject(appState)
                 }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "clock.arrow.circlepath", color: AppTheme.accentBlue, title: "Timeline / Audit Trail",
+                       subtitle: "Audit logs of medication activity") {
+                    UpdatesFeedView().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
 
                 hubRow(icon: "waveform.path.ecg.rectangle", color: AppTheme.danger, title: "Measurements",
                        subtitle: "Vitals, biometrics & wellness") {
@@ -230,6 +270,40 @@ public struct MoreHubView: View {
                 
                 Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
 
+                // SafeCircle notification toggle
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(AppTheme.warning.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundStyle(AppTheme.warning)
+                            .font(.system(size: 18))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SafeCircle Pushes")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Text("Alert contacts on missed doses")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    Spacer()
+                    Toggle("", isOn: $appState.safeCirclePushEnabled)
+                        .labelsHidden()
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
+                hubRow(icon: "figure.2.and.child.holdinghands", color: AppTheme.accentTeal, title: "Dependent Care",
+                       subtitle: "Track linked dependents & lab reports") {
+                    ParentCareView().environmentObject(appState)
+                }
+
+                Divider().background(Color.white.opacity(0.15)).padding(.leading, 52)
+
                 hubRow(icon: "person.badge.plus", color: AppTheme.accentTeal, title: "Add Dependent",
                        subtitle: "Manage offline & online dependents") {
                     ManageDependentsView().environmentObject(appState)
@@ -252,6 +326,176 @@ public struct MoreHubView: View {
         }
         .padding(.vertical, 8)
         .glassCard(cornerRadius: 24)
+    }
+
+    private var appleWatchSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Apple Watch Integration")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.orange.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "applewatch")
+                            .foregroundStyle(.orange)
+                            .font(.system(size: 20))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Link Apple Watch")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                        Text("Sync vitals, heart rate & activity")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    Spacer()
+                    Toggle("", isOn: $appState.appleWatchLinked)
+                        .labelsHidden()
+                }
+
+                if appState.appleWatchLinked {
+                    Divider().opacity(0.1)
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Last synced: \(appState.lastAppleWatchSyncDate?.formatted(date: .abbreviated, time: .shortened) ?? "Never")")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                        Spacer()
+                        Button {
+                            appState.syncAppleWatch()
+                        } label: {
+                            Text("Sync Now")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppTheme.primary)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .glassCard(cornerRadius: 16)
+        }
+    }
+
+    private var referralSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Invite Friends & Family")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.primary.opacity(0.16))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "gift.fill")
+                            .font(.title3)
+                            .foregroundStyle(AppTheme.primary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Get 1 Month Free Premium")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                        Text("Refer 5 friends to get a free subscription")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
+                }
+
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Referral Progress")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("\(appState.referralCount)/5 referred")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.primary)
+                    }
+
+                    ProgressView(value: Double(appState.referralCount), total: 5.0)
+                        .tint(AppTheme.primary)
+                        .background(Color.white.opacity(0.12))
+                }
+
+                Button {
+                    appState.referralCount = min(appState.referralCount + 1, 5)
+                    UIPasteboard.general.string = "Use my code MEDHAVN-5X9Z to get started on Medhavn!"
+                } label: {
+                    Label("Share Referral Code (MEDHAVN-5X9Z)", systemImage: "square.and.arrow.up")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(AppTheme.primary)
+                        .foregroundStyle(.black)
+                        .clipShape(Capsule())
+                }
+                
+                Divider().overlay(.white.opacity(0.15))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Or refer via email:")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.8))
+                    
+                    HStack(spacing: 8) {
+                        TextField("Friend's email address", text: $referralEmail)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(10)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(.white)
+                        
+                        Button {
+                            let email = referralEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !email.isEmpty else { return }
+                            Task {
+                                let success = await appState.sendReferralEmail(email: email)
+                                if success {
+                                    appState.referralCount = min(appState.referralCount + 1, 5)
+                                    referralAlertMessage = "Referral email sent successfully to \(email)!"
+                                    referralEmail = ""
+                                } else {
+                                    referralAlertMessage = "Failed to send referral email. Please try again."
+                                }
+                                showReferralAlert = true
+                            }
+                        } label: {
+                            Text("Send")
+                                .font(.caption.weight(.bold))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(AppTheme.primary)
+                                .foregroundStyle(.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .disabled(referralEmail.isEmpty || !referralEmail.contains("@"))
+                    }
+                }
+            }
+            .padding(16)
+            .glassCard(cornerRadius: 16)
+            .alert("Referral", isPresented: $showReferralAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(referralAlertMessage)
+            }
+        }
     }
 
     private var toolsSection: some View {

@@ -3,6 +3,8 @@ import SwiftUI
 struct ParentCareView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showAddParent = false
+    @State private var selectedReportName = ""
+    @State private var showReportAlert = false
 
     var body: some View {
         ZStack {
@@ -24,7 +26,7 @@ struct ParentCareView: View {
                 .padding(16)
             }
         }
-        .navigationTitle("Parent Care")
+        .navigationTitle("Dependent Care")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -43,6 +45,11 @@ struct ParentCareView: View {
         .onAppear {
             appState.checkForMissedDoses()
         }
+        .alert("Lab Report", isPresented: $showReportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Opening \(selectedReportName) for your review. All vitals are in the normal range.")
+        }
     }
 
     private var overviewCard: some View {
@@ -58,10 +65,10 @@ struct ParentCareView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Linked parent tablet care")
+                Text("Linked dependent care")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
-                Text("\(appState.linkedParentProfiles.count) parent profiles · \(unresolved.count) needs buzz")
+                Text("\(appState.linkedParentProfiles.count) dependents linked · \(unresolved.count) needs attention")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -78,11 +85,11 @@ struct ParentCareView: View {
                 .font(.system(size: 44))
                 .foregroundStyle(AppTheme.primary)
 
-            Text("Add a parent profile")
+            Text("Add a dependent profile")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.white)
 
-            Text("Create a linked profile for a parent, then add their tablets from DoseMap. Their schedule appears here and missed doses can be buzzed.")
+            Text("Create a linked profile for a parent or dependent. Their schedule appears here and alerts can be monitored.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -90,7 +97,7 @@ struct ParentCareView: View {
             Button {
                 showAddParent = true
             } label: {
-                Text("Add Parent")
+                Text("Add Dependent")
                     .font(.subheadline.weight(.bold))
                     .padding(.horizontal, 22)
                     .padding(.vertical, 11)
@@ -129,19 +136,63 @@ struct ParentCareView: View {
 
                 Spacer()
 
-                Text(parent.linkCode)
-                    .font(.caption.weight(.bold).monospaced())
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(AppTheme.primary)
-                    .clipShape(Capsule())
+                Menu {
+                    Button(role: .destructive) {
+                        withAnimation {
+                            appState.removeDependent(id: parent.profileID)
+                        }
+                    } label: {
+                        Label("Delink Profile", systemImage: "link.badge.plus")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(AppTheme.secondary)
+                        .padding(8)
+                }
+            }
+
+            Divider().opacity(0.1)
+
+            // Lab Reports section for NRI parents / dependents
+            VStack(alignment: .leading, spacing: 8) {
+                Text("NRI Lab Reports & Diagnostics")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.accentTeal)
+
+                HStack(spacing: 12) {
+                    Button {
+                        selectedReportName = "Lipid Panel (June 2026)"
+                        showReportAlert = true
+                    } label: {
+                        Label("Lipid Panel", systemImage: "doc.text.fill")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.12))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                    }
+
+                    Button {
+                        selectedReportName = "Blood Glucose (July 2026)"
+                        showReportAlert = true
+                    } label: {
+                        Label("Glucose Test", systemImage: "doc.text.fill")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.12))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                    }
+                }
             }
 
             Divider().opacity(0.1)
 
             if unresolved.isEmpty {
-                Label("No missed tablets waiting for a buzz", systemImage: "checkmark.circle.fill")
+                Label("No missed tablets waiting for support", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.success)
             } else {
@@ -151,7 +202,7 @@ struct ParentCareView: View {
             }
 
             if items.isEmpty {
-                Text("No tablets are scheduled for this parent yet. Switch to \(parent.displayName)'s profile in DoseMap to add medication.")
+                Text("No tablets are scheduled for this dependent yet. Switch to \(parent.displayName)'s profile in Home to add medication.")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.65))
                     .fixedSize(horizontal: false, vertical: true)
@@ -201,7 +252,7 @@ struct ParentCareView: View {
             Button {
                 appState.sendBuzz(for: alert.id)
             } label: {
-                Label("Buzz", systemImage: "dot.radiowaves.left.and.right")
+                Label("Notify", systemImage: "dot.radiowaves.left.and.right")
                     .font(.caption.weight(.bold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)

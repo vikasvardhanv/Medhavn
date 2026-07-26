@@ -12,10 +12,10 @@ configs:
 packages:
   MedicationLogicEngine:
     path: .
-  MLXSwift:
+  mlx-swift:
     url: https://github.com/ml-explore/mlx-swift
     from: 0.30.0
-  MLXSwiftLM:
+  mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm
     branch: main
   swift-huggingface:
@@ -41,13 +41,13 @@ targets:
     dependencies:
       - package: MedicationLogicEngine
         product: MedicationLogicEngine
-      - package: MLXSwift
+      - package: mlx-swift
         product: MLX
-      - package: MLXSwiftLM
+      - package: mlx-swift-lm
         product: MLXLLM
-      - package: MLXSwiftLM
+      - package: mlx-swift-lm
         product: MLXLMCommon
-      - package: MLXSwiftLM
+      - package: mlx-swift-lm
         product: MLXHuggingFace
       - package: swift-huggingface
         product: HuggingFace

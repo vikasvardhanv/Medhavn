@@ -118,29 +118,13 @@ struct RootView: View, AppStateProvider {
                 .tag(AppTab.home)
                 .tabItem { Label("Home", systemImage: "house.fill") }
 
-            NavigationStack { UpdatesFeedView().scrollContentBackground(.hidden) }
-                .tag(AppTab.timeline)
-                .tabItem { Label("Timeline", systemImage: "clock.arrow.circlepath") }
-
-            // Dynamic 3rd tab — swaps based on tracker preference
-            switch appState.trackerPreference {
-            case .period:
-                NavigationStack { PeriodTrackerView().scrollContentBackground(.hidden) }
-                    .tag(AppTab.periodTracker)
-                    .tabItem { Label("Period", systemImage: "drop.fill") }
-            case .fertility:
-                NavigationStack { FertilityTrackerView().scrollContentBackground(.hidden) }
-                    .tag(AppTab.fertilityTracker)
-                    .tabItem { Label("Fertility", systemImage: "heart.circle.fill") }
-            case .none:
-                NavigationStack { ReportsDashboardView().scrollContentBackground(.hidden) }
-                    .tag(AppTab.insights)
-                    .tabItem { Label("Insights", systemImage: "waveform.path.ecg") }
-            }
-
             NavigationStack { MedCabinetView().scrollContentBackground(.hidden) }
-                .tag(AppTab.vault)
-                .tabItem { Label("Vault", systemImage: "lock.doc.fill") }
+                .tag(AppTab.pharmacy)
+                .tabItem { Label("Pharmacy", systemImage: "pills.fill") }
+
+            NavigationStack { DashboardTabView().scrollContentBackground(.hidden) }
+                .tag(AppTab.dashboard)
+                .tabItem { Label("Dashboard", systemImage: "heart.text.square.fill") }
 
             NavigationStack { MoreHubView().scrollContentBackground(.hidden) }
                 .tag(AppTab.hub)
@@ -158,11 +142,8 @@ struct RootView: View, AppStateProvider {
 
 private enum AppTab: Hashable {
     case home
-    case timeline
-    case insights          // Used when trackerPreference == .none
-    case periodTracker     // Used when trackerPreference == .period
-    case fertilityTracker  // Used when trackerPreference == .fertility
-    case vault
+    case pharmacy
+    case dashboard
     case hub
 }
 

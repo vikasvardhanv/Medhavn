@@ -6,6 +6,9 @@ public struct MedCabinetView: View {
     @State private var showWizard = false
     @State private var showDeleteConfirm = false
     @State private var selectedItemToDelete: MedCabinetItem? = nil
+    @State private var isRefilling = false
+    @State private var showRefillAlert = false
+    @State private var refillAlertMessage = ""
 
     public init() {}
 
@@ -15,6 +18,10 @@ public struct MedCabinetView: View {
 
         ScrollView {
             VStack(spacing: 24) {
+                // Connected Pharmacy Integration Widget
+                pharmacyIntegrationCard
+                    .staggeredEntrance(delay: 0.0)
+
                 // Summary Widgets at the Top
                 if !items.isEmpty {
                     HStack(spacing: 16) {
@@ -43,17 +50,17 @@ public struct MedCabinetView: View {
                         .glassCard()
                     }
                     .padding(.horizontal, 4)
-                    .staggeredEntrance(delay: 0.0)
+                    .staggeredEntrance(delay: 0.05)
                 }
 
                 if items.isEmpty {
                     VStack(spacing: 20) {
-                        Image(systemName: "lock.shield")
+                        Image(systemName: "pills.fill")
                             .font(.system(size: 54))
                             .foregroundStyle(AppTheme.secondary)
                             .padding(.bottom, 8)
                         
-                        Text("Your Vault is empty")
+                        Text("Your Pharmacy Cabinet is empty")
                             .font(.title3.weight(.bold))
                             .foregroundStyle(.white)
                         
@@ -95,11 +102,10 @@ public struct MedCabinetView: View {
             .padding(.bottom, 32)
         }
         .background { MeshBackgroundView() }
-        .navigationTitle("Vault")
+        .navigationTitle("Pharmacy")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -128,11 +134,52 @@ public struct MedCabinetView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             if let item = selectedItemToDelete {
-                Text("This removes \(item.name) from DoseMap and Vault.")
+                Text("This removes \(item.name) from Home and Pharmacy.")
             } else {
                 Text("Are you sure you want to delete this medication?")
             }
         }
+        .alert("Pharmacy Refill", isPresented: $showRefillAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(refillAlertMessage)
+        }
+    }
+
+    private var pharmacyIntegrationCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.accentTeal.opacity(0.16))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "cross.case.fill")
+                        .foregroundStyle(AppTheme.accentTeal)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("CVS Pharmacy Connected")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Prescriptions linked & auto-refills enabled")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.65))
+                }
+                
+                Spacer()
+
+                Text("Active")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.success)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(14)
+        .glassCard()
+        .padding(.horizontal, 4)
     }
 
     @ViewBuilder
@@ -169,6 +216,36 @@ public struct MedCabinetView: View {
             }
             Spacer()
             
+            if isLowSupply {
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    isRefilling = true
+                    // Simulate refill order sending to connected pharmacy
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        isRefilling = false
+                        appState.refillMedCabinetItem(id: item.id, amount: 30)
+                        refillAlertMessage = "Refill request for \(item.name) has been sent to CVS. Your new stock of 30 pills has been added."
+                        showRefillAlert = true
+                    }
+                } label: {
+                    if isRefilling {
+                        ProgressView()
+                            .controlSize(.small)
+                            .padding(.horizontal, 10)
+                    } else {
+                        Text("Refill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(AppTheme.primary)
+                            .clipShape(Capsule())
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
             Menu {
                 Button {
                     let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -177,7 +254,7 @@ public struct MedCabinetView: View {
                         appState.refillMedCabinetItem(id: item.id, amount: 30)
                     }
                 } label: {
-                    Label("Quick Refill (+30)", systemImage: "plus.circle")
+                    Label("Manual Refill (+30)", systemImage: "plus.circle")
                 }
                 
                 Button(role: .destructive) {

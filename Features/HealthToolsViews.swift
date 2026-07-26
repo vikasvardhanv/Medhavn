@@ -448,9 +448,21 @@ struct AppointmentsView: View {
                             ForEach(appState.appointments.sorted { $0.date < $1.date }) { appt in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 6) {
-                                        Text(appt.title)
-                                            .font(.subheadline.weight(.bold))
-                                            .foregroundStyle(.white)
+                                        HStack {
+                                            Text(appt.title)
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(.white)
+                                            
+                                            Spacer()
+                                            
+                                            Text(appt.type)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundStyle(.black)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 3)
+                                                .background(AppTheme.primary)
+                                                .clipShape(Capsule())
+                                        }
                                         
                                         HStack(spacing: 8) {
                                             Image(systemName: "calendar")
@@ -519,6 +531,9 @@ struct AddAppointmentView: View {
     @State private var doctorName = ""
     @State private var date = Date()
     @State private var notes = ""
+    @State private var type = "Routine Checkup"
+
+    private let appointmentTypes = ["Routine Checkup", "Fasting Lab", "Blood Test", "Follow-up", "Vaccination", "Dental"]
 
     var body: some View {
         NavigationStack {
@@ -544,6 +559,14 @@ struct AddAppointmentView: View {
                                     .padding(12)
                                     .background(Color.primary.opacity(0.04))
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                                Picker("Appointment Type", selection: $type) {
+                                    ForEach(appointmentTypes, id: \.self) { t in
+                                        Text(t).tag(t)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .tint(AppTheme.primary)
                                 
                                 DatePicker("Date & Time", selection: $date)
                                     .font(.subheadline)
@@ -567,7 +590,7 @@ struct AddAppointmentView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                                        .stroke(Color.primary.opacity(0.08), style: StrokeStyle(lineWidth: 1))
                                 )
                                 .padding(12)
                                 .glassCard(cornerRadius: 16)
@@ -579,7 +602,8 @@ struct AddAppointmentView: View {
                                 title: title,
                                 doctorName: doctorName,
                                 date: date,
-                                notes: notes
+                                notes: notes,
+                                type: type
                             ))
                             dismiss()
                         } label: {
@@ -588,7 +612,7 @@ struct AddAppointmentView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                                 .background(AppTheme.primary)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.black)
                                 .clipShape(Capsule())
                                 .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                         }

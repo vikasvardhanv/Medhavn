@@ -47,6 +47,9 @@ struct MedhavnApp: App {
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .background { appState.lockApp() }
+                    // Back in the foreground (for example opened from AuraPath):
+                    // sync medicines and dose ticks so both apps agree.
+                    if phase == .active { Task { await appState.pullCloudMeds() } }
                 }
                 .onOpenURL { url in
                     if InviteLinkHandler.shared.handle(url: url) {

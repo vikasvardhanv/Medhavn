@@ -94,6 +94,19 @@ final class AppState: ObservableObject {
 
     let engine = MedicationLogicEngine()
     let store = SQLiteStore()
+    private var isCloudPulling = false
+    private lazy var cloudSync: CloudMedSync? = {
+        let sync = CloudMedSync()
+        sync?.onSessionRefreshed = { [weak self] session in
+            Task { @MainActor in
+                guard let self, self.authUserId == session.userId else { return }
+                self.authToken = session.token
+                self.authRefreshToken = session.refreshToken
+                self.saveSettings()
+            }
+        }
+        return sync
+    }()
     let authService: AuthServicing = AuthAPI()
     let notificationService: MedicationNotificationServicing = MedicationNotificationService()
     let insightsEngine = ProactiveInsightsEngine()
@@ -153,6 +166,7 @@ final class AppState: ObservableObject {
                     await scheduleDoseReminders()
                 }
                 refreshProactiveSuggestions()
+                await pullCloudMeds()
             }
 
             // Pre-warm the local chat model at launch.
@@ -359,6 +373,7 @@ final class AppState: ObservableObject {
         }
 
         persistFeatureState()
+        cloudPushItem(id: item.id)
         return warnings
     }
 
@@ -369,6 +384,9 @@ final class AppState: ObservableObject {
         pillDoseStatuses.removeAll { $0.key.hasPrefix(prefix) }
         addUpdate(category: .adherence, title: "Medication removed", detail: "\(item.name) removed from Pharmacy.")
         persistFeatureState()
+        if item.profileID == syncedProfileID {
+            cloudPush("delete item") { try await $0.delete(itemID: id, session: $1) }
+        }
     }
 
     func refillMedCabinetItem(id: UUID, amount: Int) {
@@ -376,6 +394,7 @@ final class AppState: ObservableObject {
         medCabinetItems[index].remainingPills += amount
         addUpdate(category: .refill, title: "Medication refilled", detail: "\(medCabinetItems[index].name) refilled with \(amount) pills.")
         persistFeatureState()
+        cloudPushItem(id: id)
     }
 
     func interactionWarnings(for item: MedCabinetItem) -> [String] {
@@ -464,6 +483,7 @@ final class AppState: ObservableObject {
 
         if status == .taken && previous != .taken {
             decrementInventory(for: itemID)
+            cloudPushItem(id: itemID)
             userHealthPoints += 10
             addUpdate(category: .adherence, title: "Dose taken (+10 Points)", detail: "Dose marked as taken for \(block.title.lowercased()). Adherence bonus added.")
         } else if status == .skipped && previous != .skipped {
@@ -478,6 +498,65 @@ final class AppState: ObservableObject {
         }
 
         persistFeatureState()
+        if medCabinetItems.first(where: { $0.id == itemID })?.profileID == syncedProfileID,
+           let record = pillDoseStatuses.first(where: { $0.key == key }) {
+            cloudPush("push dose status") { try await $0.push(statuses: [record], session: $1) }
+        }
+    }
+
+    // MARK: - Cloud med sync (shared with AuraPath via medhavn schema)
+
+    /// Only the account owner's profile (profiles[0], see applySignupName) syncs;
+    /// dependents' cabinets stay local-only.
+    private var syncedProfileID: UUID? { profiles.first?.id }
+
+    /// Nil for the LocalDev auth stub or a signed-out state: nothing syncs then.
+    private var cloudSession: CloudMedSync.Session? {
+        guard let userId = authUserId, UUID(uuidString: userId) != nil,
+              let token = authToken, !token.isEmpty, token != "local-dev-token" else { return nil }
+        return CloudMedSync.Session(userId: userId, token: token, refreshToken: authRefreshToken)
+    }
+
+    private func cloudPush(_ label: String, _ work: @escaping (CloudMedSync, CloudMedSync.Session) async throws -> Void) {
+        guard let sync = cloudSync, let session = cloudSession else { return }
+        Task {
+            do {
+                try await work(sync, session)
+            } catch {
+                appLog("Cloud sync \(label) failed: \(error.localizedDescription)", level: .error, category: "CloudSync")
+            }
+        }
+    }
+
+    private func cloudPushItem(id: UUID) {
+        guard let item = medCabinetItems.first(where: { $0.id == id }), item.profileID == syncedProfileID else { return }
+        cloudPush("push item") { try await $0.push(items: [item], session: $1) }
+    }
+
+    /// Pulls the user's cabinet and dose rows, merges them into local state
+    /// (rules in CloudMedSync.mergeCabinet / mergeStatuses), then uploads local
+    /// rows the server lacks or holds stale. The first run is the backfill.
+    func pullCloudMeds() async {
+        guard let sync = cloudSync, let session = cloudSession, let profileID = syncedProfileID, !isCloudPulling else { return }
+        isCloudPulling = true
+        defer { isCloudPulling = false }
+        do {
+            let remote = try await sync.pull(session: session)
+            let cabinet = CloudMedSync.mergeCabinet(local: medCabinetItems, remote: remote.items, profileID: profileID, syncedProfileID: profileID)
+            let syncedIDs = Set(cabinet.items.filter { $0.profileID == profileID }.map(\.id))
+            let statuses = CloudMedSync.mergeStatuses(local: pillDoseStatuses, remote: remote.statuses, syncedItemIDs: syncedIDs)
+            if cabinet.changed || statuses.changed {
+                medCabinetItems = cabinet.items
+                pillDoseStatuses = statuses.statuses
+                persistFeatureState()
+            }
+            appLog("Cloud sync pulled \(remote.items.count) items, \(remote.statuses.count) statuses; uploading \(cabinet.toPush.count) items, \(statuses.toPush.count) statuses", level: .info, category: "CloudSync")
+            let latest = cloudSession ?? session
+            try await sync.push(items: cabinet.toPush, session: latest)
+            try await sync.push(statuses: statuses.toPush, session: latest)
+        } catch {
+            appLog("Cloud sync pull failed: \(error.localizedDescription)", level: .error, category: "CloudSync")
+        }
     }
 
     func syncAppleWatch() {
@@ -1331,6 +1410,7 @@ final class AppState: ObservableObject {
         authRefreshToken = session.refreshToken
         authErrorMessage = nil
         saveSettings()
+        Task { await pullCloudMeds() }
     }
 
     func completeConsentChecklist() {

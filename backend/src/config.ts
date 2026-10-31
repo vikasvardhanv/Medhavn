@@ -9,12 +9,18 @@ export const config = {
   supabaseUrl: need("SUPABASE_URL").replace(/\/+$/, ""),
   serviceKey: need("SUPABASE_SERVICE_ROLE_KEY"),
   jwtSecret: need("SUPABASE_JWT_SECRET"),
-  smtp: {
-    host: need("SMTP_HOST"),
-    port: Number(process.env.SMTP_PORT ?? 465),
-    user: need("SMTP_USER"),
-    pass: need("SMTP_PASS"),
-    from: process.env.MAIL_FROM?.trim() || need("SMTP_USER"),
+  // Mail goes through Resend when RESEND_API_KEY is set, otherwise through SMTP.
+  mail: {
+    from: need("MAIL_FROM"),
+    resendKey: process.env.RESEND_API_KEY?.trim() ?? "",
+    smtp: process.env.RESEND_API_KEY?.trim()
+      ? null
+      : {
+          host: need("SMTP_HOST"),
+          port: Number(process.env.SMTP_PORT ?? 465),
+          user: need("SMTP_USER"),
+          pass: need("SMTP_PASS"),
+        },
   },
   openFdaKey: process.env.OPENFDA_API_KEY?.trim() ?? "",
   job: {

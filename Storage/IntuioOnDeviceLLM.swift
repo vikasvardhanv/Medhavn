@@ -15,6 +15,21 @@ import Tokenizers
 #endif
 #endif
 
+/// Which on-device model the assistant uses. Chosen by comparing candidates on grounded medication
+/// questions: Llama 3.2 Instruct stayed on the user's facts, said "I do not know" when it should,
+/// and did not invent dosing advice. Phones with less memory get the 1B version.
+enum IntuioModelCatalog {
+    static let standard = "mlx-community/Llama-3.2-3B-Instruct-4bit"   // about 1.8 GB
+    static let compact = "mlx-community/Llama-3.2-1B-Instruct-4bit"    // about 0.7 GB
+
+    /// 6 GB iPhones report about 5.7 GB, 4 GB models about 3.7 GB.
+    static var current: String {
+        ProcessInfo.processInfo.physicalMemory >= 5_000_000_000 ? standard : compact
+    }
+
+    static var downloadSizeText: String { current == standard ? "1.8 GB" : "0.7 GB" }
+}
+
 enum IntuioLocalModelRuntime: String {
     case mlx = "MLX"
     case ruleBased = "RuleBased"
@@ -58,7 +73,7 @@ enum IntuioLocalNoteEngineFactory {
 struct IntuioMLXNoteEngine: IntuioLocalNoteGenerating {
     let modelName: String
 
-    init(modelName: String = "mlx-community/Qwen2-0.5B-Instruct-4bit") {
+    init(modelName: String = IntuioModelCatalog.current) {
         self.modelName = modelName
     }
 
@@ -138,7 +153,7 @@ struct IntuioMLXNoteEngine: IntuioLocalNoteGenerating {
 struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     let modelName: String
 
-    init(modelName: String = "mlx-community/Qwen2-0.5B-Instruct-4bit") {
+    init(modelName: String = IntuioModelCatalog.current) {
         self.modelName = modelName
     }
 
@@ -173,13 +188,15 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     func generateReply(for userText: String, history: [IntuioAssistantTurn], appState: AppState?) async -> String {
         // Data questions and app actions are answered from the user's real data, never by the model.
         if let appState, let answer = IntuioAssistantTools.handle(userText, appState: appState) { return answer }
-        let prompt = buildPrompt(userText: userText, history: history, appState: appState)
+        let system = systemPrompt(appState: appState)
+        var turns = Array(history.suffix(8))
+        if turns.last?.text != userText { turns.append(IntuioAssistantTurn(role: .user, text: userText)) }
 
         #if canImport(MLX) && canImport(MLXLLM) && canImport(MLXLMCommon) && !targetEnvironment(simulator)
-        print("[IntuioChat] 🧠 Sending to MLX engine (\(modelName)), prompt length: \(prompt.count) chars")
+        print("[IntuioChat] 🧠 Sending to MLX engine (\(modelName)), \(turns.count) turn(s)")
         do {
             let output = try await IntuioMLXRuntime.shared.generate(
-                prompt: prompt, modelID: modelName, maxTokens: 220, temperature: 0.35
+                system: system, turns: turns, modelID: modelName, maxTokens: 256, temperature: 0.3
             )
             let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
             print("[IntuioChat] 💬 MLX response (\(trimmed.count) chars): \(trimmed.prefix(120))")
@@ -199,37 +216,14 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
         return reply
     }
 
-    private func buildPrompt(userText: String, history: [IntuioAssistantTurn], appState: AppState?) -> String {
-        let apptsStr: String
-        let medsStr: String
-        if let appState = appState {
-            apptsStr = appState.appointments.map { "\($0.title) with \($0.doctorName) (\($0.type)) on \($0.date.formatted())" }.joined(separator: ", ")
-            medsStr = appState.medCabinetItems.map { "\($0.name) (\($0.remainingPills) remaining)" }.joined(separator: ", ")
-        } else {
-            apptsStr = "None"
-            medsStr = "None"
-        }
-
-        let recentHistory = history.suffix(6)
-        let historyLines = recentHistory.map { turn in
-            let role = turn.role == .user ? "User" : "Assistant"
-            return "\(role): \(turn.text)"
-        }.joined(separator: "\n")
-
-        let facts = appState.map { IntuioAssistantTools.context(appState: $0) } ?? ""
+    private func systemPrompt(appState: AppState?) -> String {
+        let facts = appState.map { IntuioAssistantTools.context(appState: $0) } ?? "No data available."
         return """
         You are Intuio, a concise medication support assistant in a patient app.
         Use only the facts below about this user. If something is not listed, say you do not know.
-        \(facts)
-        Current Appointments: \(apptsStr)
-        Current Medications: \(medsStr)
-        Keep responses short, practical, and safety-first.
-        Never diagnose, never prescribe medication changes, and recommend clinician/pharmacist review for uncertainty.
+        Keep responses short, practical, and safety-first. Never diagnose, never prescribe or change doses, and recommend a clinician or pharmacist for anything uncertain.
 
-        Conversation:
-        \(historyLines)
-        User: \(userText)
-        Assistant:
+        \(facts)
         """
     }
 
@@ -310,6 +304,8 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     }
 }
 
+enum IntuioModelError: Error { case notConsented }
+
 #if canImport(MLX) && canImport(MLXLLM) && canImport(MLXLMCommon)
 actor IntuioMLXRuntime {
     static let shared = IntuioMLXRuntime()
@@ -319,7 +315,7 @@ actor IntuioMLXRuntime {
 
     private init() {
         // Allow the Metal GPU cache to hold model weights comfortably.
-        // 20 MB was far too small for a ≈320 MB 4-bit model and caused
+        // 20 MB was far too small for a multi-hundred-MB 4-bit model and caused
         // buffer thrashing / EXC_BAD_ACCESS crashes during inference.
         Memory.cacheLimit = 512 * 1024 * 1024   // 512 MB
     }
@@ -328,6 +324,24 @@ actor IntuioMLXRuntime {
         print("[IntuioMLXRuntime] 📦 Loading model: \(modelID)")
         _ = try await loadModel(modelID: modelID, onProgress: onProgress)
         print("[IntuioMLXRuntime] ✅ Model loaded and cached")
+    }
+
+    /// Chat generation with a real system message and conversation turns, so the model's own chat template is used.
+    func generate(system: String, turns: [IntuioAssistantTurn], modelID: String, maxTokens: Int = 256, temperature: Float = 0.3) async throws -> String {
+        let modelContainer = try await loadModel(modelID: modelID)
+        let chat: [Chat.Message] = [.system(system)] + turns.map { $0.role == .user ? .user($0.text) : .assistant($0.text) }
+        let text = try await modelContainer.perform { context in
+            let input = try await context.processor.prepare(input: UserInput(chat: chat))
+            let parameters = GenerateParameters(maxTokens: maxTokens, temperature: temperature, topP: 0.9)
+            var chunks: [String] = []
+            for await item in try MLXLMCommon.generate(input: input, parameters: parameters, context: context) {
+                if case .chunk(let chunk) = item { chunks.append(chunk) }
+            }
+            return chunks.joined()
+        }
+        // Defensive: drop any reasoning block a model might emit.
+        let cleaned = text.replacingOccurrences(of: "<think>[\\s\\S]*?</think>", with: "", options: .regularExpression)
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func generate(prompt: String, modelID: String, maxTokens: Int = 96, temperature: Float = 0.3) async throws -> String {
@@ -354,6 +368,10 @@ actor IntuioMLXRuntime {
     }
 
     private func loadModel(modelID: String, onProgress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> ModelContainer {
+        // The one gate for every path (chat, daily note, warmup): never download without the user's consent for this model.
+        guard UserDefaults.standard.string(forKey: "intuio.consentedModelID") == modelID else {
+            throw IntuioModelError.notConsented
+        }
         if cachedModelID == modelID, let container {
             onProgress(1.0)
             return container

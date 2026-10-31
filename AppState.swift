@@ -79,9 +79,10 @@ final class AppState: ObservableObject {
     /// `true` once the model has been downloaded and cached at least once.
     /// Persisted in UserDefaults so the setup screen never shows again after first run.
     @Published var isFirstLaunchSetupDone: Bool = UserDefaults.standard.bool(forKey: "intuio.modelCached")
-    /// `true` once the user has explicitly consented to the ~320 MB model download.
+    /// `true` once the user has explicitly consented to downloading the current assistant model.
     /// Guards the prewarm task so no download begins without informed user consent.
-    @Published var isDownloadConsentGiven: Bool = UserDefaults.standard.bool(forKey: "intuio.downloadConsentGiven")
+    // Consent is for one specific model. A new model means a new download, so ask again.
+    @Published var isDownloadConsentGiven: Bool = UserDefaults.standard.string(forKey: "intuio.consentedModelID") == IntuioModelCatalog.current
     @Published var safeCirclePushEnabled: Bool = true
     @Published var appleWatchLinked: Bool = false
     @Published var lastAppleWatchSyncDate: Date? = nil
@@ -186,14 +187,14 @@ final class AppState: ObservableObject {
             }
 
             // Pre-warm the local chat model at launch.
-            // On first install the weights (~320 MB) download once to the
+            // On first install the weights download once to the
             // HuggingFace on-device cache; every subsequent launch loads
             // from disk in a few seconds.
             // Only start the download if the model is already cached (subsequent
             // launches) OR the user has explicitly consented to the download.
             // On first install, consent is collected by FirstLaunchSetupView
             // before this code path is reached via startModelDownloadWithConsent().
-            if isFirstLaunchSetupDone || isDownloadConsentGiven {
+            if isDownloadConsentGiven {
                 let taskPriority: TaskPriority = isFirstLaunchSetupDone ? .background : .userInitiated
                 Task.detached(priority: taskPriority) { [weak self] in
                     guard let self else { return }
@@ -233,8 +234,8 @@ final class AppState: ObservableObject {
     /// Called when the user explicitly taps "Download Now" on the consent prompt.
     /// Records consent, then starts the model download for the first time.
     func startModelDownloadWithConsent() {
-        guard !isDownloadConsentGiven && !isFirstLaunchSetupDone else { return }
-        UserDefaults.standard.set(true, forKey: "intuio.downloadConsentGiven")
+        guard !isDownloadConsentGiven else { return }
+        UserDefaults.standard.set(IntuioModelCatalog.current, forKey: "intuio.consentedModelID")
         isDownloadConsentGiven = true
         isModelWarmedUp = false
         modelPrewarmFailed = false
@@ -253,7 +254,7 @@ final class AppState: ObservableObject {
 
     /// Resets prewarm state and fires a new download attempt.
     func retryModelPrewarm() {
-        guard !isModelPrewarming else { return }
+        guard !isModelPrewarming, isDownloadConsentGiven else { return }
         isModelWarmedUp = false
         modelPrewarmFailed = false
         Task.detached(priority: .userInitiated) { [weak self] in

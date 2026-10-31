@@ -339,7 +339,7 @@ private struct IntuioChatDownloadConsentSheetView: View {
                         Image(systemName: "internaldrive")
                             .foregroundStyle(.white.opacity(0.7))
                             .frame(width: 20)
-                        Text("Download size: approximately 320 MB")
+                        Text("Download size: approximately \(IntuioModelCatalog.downloadSizeText) · Built with Llama")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.9))
                     }
@@ -375,7 +375,7 @@ private struct IntuioChatDownloadConsentSheetView: View {
                         onConsent()
                         isPresented = false
                     } label: {
-                        Text("Download Now (~320 MB)")
+                        Text("Download Now (~\(IntuioModelCatalog.downloadSizeText))")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)

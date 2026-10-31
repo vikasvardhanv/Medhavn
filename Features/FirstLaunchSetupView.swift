@@ -68,7 +68,7 @@ private struct DownloadConsentPromptView: View {
                     Image(systemName: "internaldrive")
                         .foregroundStyle(.white.opacity(0.7))
                         .frame(width: 20)
-                    Text("Download size: approximately 320 MB")
+                    Text("Download size: approximately \(IntuioModelCatalog.downloadSizeText) · Built with Llama")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.9))
                 }
@@ -103,7 +103,7 @@ private struct DownloadConsentPromptView: View {
                 Button {
                     appState.startModelDownloadWithConsent()
                 } label: {
-                    Text("Download Now (~320 MB)")
+                    Text("Download Now (~\(IntuioModelCatalog.downloadSizeText))")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -169,7 +169,7 @@ private struct DownloadProgressView: View {
                 .foregroundStyle(.white.opacity(0.82))
                 .padding(.top, 6)
 
-            Text("≈ 320 MB · one-time only")
+            Text("≈ \(IntuioModelCatalog.downloadSizeText) · one-time only")
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.55))
                 .padding(.top, 2)

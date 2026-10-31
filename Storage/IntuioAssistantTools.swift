@@ -40,10 +40,11 @@ enum IntuioAssistantTools {
     /// Short facts block for the language model, so its answers use the user's actual plan.
     static func context(appState: AppState) -> String {
         [
-            "Today: " + todaySummary(appState),
+            todaySummary(appState),
             nextDose(appState),
             stockReport(appState),
             "Medications: " + medicationList(appState),
+            appointmentList(appState),
         ].joined(separator: "\n")
     }
 
@@ -60,6 +61,12 @@ enum IntuioAssistantTools {
                 : item.scheduledTimes.map(\.displayString).joined(separator: ", ")
             return "\(item.name) \(item.dosageText)" + (when.isEmpty ? "" : " (\(when))")
         }.joined(separator: "; ")
+    }
+
+    private static func appointmentList(_ appState: AppState) -> String {
+        let upcoming = appState.appointments.filter { $0.date > Date() }.sorted { $0.date < $1.date }.prefix(5)
+        guard !upcoming.isEmpty else { return "Appointments: none upcoming." }
+        return "Appointments: " + upcoming.map { "\($0.title) on \($0.date.formatted(date: .abbreviated, time: .shortened))" }.joined(separator: "; ")
     }
 
     private static func stockReport(_ appState: AppState) -> String {

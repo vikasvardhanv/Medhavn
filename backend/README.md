@@ -1,0 +1,82 @@
+# Medhavn backend
+
+The service sits between the iOS app and the self-hosted Supabase. It sends email, verifies signup codes, proxies drug search, stores app logs, and alerts SafeCircle contacts about missed doses.
+
+Stack: Node 22, TypeScript, Hono.
+
+## API
+
+| Method and path | Auth | Purpose |
+|---|---|---|
+| `GET /health` | none | Liveness probe |
+| `POST /v1/otp/send` `{email}` | none, rate limited | Email a 6-digit signup code |
+| `POST /v1/otp/verify` `{email, code}` | none, rate limited | Check the code. Returns `{verified}` |
+| `POST /v1/email/safecircle-invite` `{name, email}` | user JWT | Invite a SafeCircle contact |
+| `POST /v1/email/referral` `{email, code?}` | user JWT | Send a referral email |
+| `GET /v1/drugs/suggest?q=&limit=` | user JWT | Drug name suggestions from OpenFDA |
+| `POST /v1/logs` `{logs:[...]}` | user JWT | Store sanitized app logs |
+
+A user JWT is the Supabase access token of a signed-in user. The anon key is rejected.
+
+Clients never send HTML or a From address. Templates live in `src/templates.ts`.
+
+## Missed-dose alerts
+
+A job runs every `MISSED_DOSE_JOB_INTERVAL_MIN` minutes. It follows these steps:
+
+1. Read `med_cabinet_items` and the user timezone from `user_profiles`.
+2. Find blocks that ended in the last 6 hours (morning 12:00, afternoon 17:00, evening 22:00, night 24:00).
+3. Drop doses with a `taken` row in `pill_dose_statuses`.
+4. Claim each remaining dose in `missed_dose_alerts`. The claim prevents duplicate emails.
+5. Email every address in `safe_circle_contacts` for that user.
+
+If no email is sent, the job releases the claim and tries again on the next pass.
+
+The job reads `safe_circle_contacts`. The iOS app must write contacts to that table, or no alert is sent.
+
+## Environment variables
+
+| Variable | Required | Notes |
+|---|---|---|
+| `SUPABASE_URL` | yes | `https://supabasemedhavn.viktron.ai` |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server only. Never put it in the app. |
+| `SUPABASE_JWT_SECRET` | yes | GoTrue signing secret. Verifies tokens locally. |
+| `SMTP_HOST` | yes | For example `smtpout.secureserver.net` |
+| `SMTP_PORT` | no | Default 465 |
+| `SMTP_USER` | yes | |
+| `SMTP_PASS` | yes | |
+| `MAIL_FROM` | no | Default is `SMTP_USER` |
+| `OPENFDA_API_KEY` | no | Raises the OpenFDA rate limit |
+| `MISSED_DOSE_JOB_ENABLED` | no | Default `true` |
+| `MISSED_DOSE_JOB_INTERVAL_MIN` | no | Default 10 |
+| `PORT` | no | Default 8080 |
+
+## Deploy to Coolify
+
+1. Apply `supabase/sql/007_backend_tables.sql` to the Supabase database.
+2. Make sure PostgREST exposes the `medhavn` schema.
+3. In Coolify, create a new application from the Git repository.
+4. Set the base directory to `/backend`.
+5. Set the build pack to Dockerfile.
+6. Set the exposed port to 8080.
+7. Add the environment variables from the table above.
+8. Set a domain, for example `api.medhavn.viktron.ai`.
+9. Set the health check path to `/health`.
+10. Deploy.
+11. Run `curl https://<domain>/health`. The answer must be `{"status":"ok",...}`.
+
+Run one instance. The rate limiter keeps counters in memory.
+
+## Develop
+
+```bash
+cd backend
+npm install
+npm test
+npm run typecheck
+devrun npm run dev
+```
+
+## Rotate secrets
+
+The old `supabase/functions/send-email/index.ts` has an SMTP password in plain text. Change that password at the provider. Then delete the old function after the app uses this service.

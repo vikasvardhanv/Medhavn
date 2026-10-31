@@ -863,7 +863,7 @@ var body: some View {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
             do {
-                let names = try await drugLookupService.searchMedicationNames(query: trimmed, limit: 12)
+                let names = try await drugLookupService.searchMedicationNames(query: trimmed, limit: 12, token: appState.authToken)
                 guard !Task.isCancelled else { return }
                 remoteMedicationSuggestions = names
                 isLoadingRemoteSuggestions = false

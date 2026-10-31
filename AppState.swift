@@ -89,7 +89,6 @@ final class AppState: ObservableObject {
     @Published var userHealthPoints: Int = 340
 
     // Email/OTP state
-    @Published var generatedSignupOTP: String? = nil
     @Published var signupEmailPendingOTP: String? = nil
 
     let engine = MedicationLogicEngine()
@@ -554,6 +553,7 @@ final class AppState: ObservableObject {
             let latest = cloudSession ?? session
             try await sync.push(items: cabinet.toPush, session: latest)
             try await sync.push(statuses: statuses.toPush, session: latest)
+            try await sync.push(contacts: safeCircleContacts, session: latest)
         } catch {
             appLog("Cloud sync pull failed: \(error.localizedDescription)", level: .error, category: "CloudSync")
         }
@@ -632,7 +632,8 @@ final class AppState: ObservableObject {
         safeCircleContacts.append(contact)
         addUpdate(category: .caregiver, title: "SafeCircle updated", detail: "\(name) added to your SafeCircle.")
         persistFeatureState()
-        
+        cloudPush("push contact") { try await $0.push(contacts: [contact], session: $1) }
+
         let email = contactInfo.trimmingCharacters(in: .whitespacesAndNewlines)
         if email.contains("@") && email.contains(".") {
             Task {
@@ -644,6 +645,7 @@ final class AppState: ObservableObject {
     func removeSafeCircleContact(id: UUID) {
         safeCircleContacts.removeAll { $0.id == id }
         persistFeatureState()
+        cloudPush("delete contact") { try await $0.deleteContact(id: id, session: $1) }
     }
 
     // MARK: - Dependents
@@ -1260,78 +1262,57 @@ final class AppState: ObservableObject {
     // MARK: - Email Service Integration
     
     func sendSignupOTP(email: String) async -> Bool {
-        let otp = String(format: "%06d", Int.random(in: 100000...999999))
-        self.generatedSignupOTP = otp
-        self.signupEmailPendingOTP = email
-        
-        let subject = "Verify your email - Medhavn"
-        let html = """
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-            <h2>Welcome to Medhavn</h2>
-            <p>Please use the following One-Time Password (OTP) to complete your registration:</p>
-            <div style="font-size: 28px; font-weight: bold; color: #007AFF; letter-spacing: 4px; padding: 15px; background-color: #f2f2f7; border-radius: 8px; display: inline-block; margin: 15px 0;">
-                \(otp)
-            </div>
-            <p>If you did not request this code, you can safely ignore this email.</p>
-        </div>
-        """
-        
+        guard let api = BackendAPI() else { return false }
         do {
-            try await EmailService().sendEmail(to: email, subject: subject, html: html)
-            appLog("OTP sent successfully to \(email)", level: .info, category: "Auth")
+            try await api.sendOTP(email: email)
+            signupEmailPendingOTP = email
+            appLog("Signup OTP requested", level: .info, category: "Auth")
             return true
         } catch {
             appLog("Failed to send OTP email: \(error.localizedDescription)", level: .error, category: "Auth")
             return false
         }
     }
-    
-    func verifySignupOTP(code: String) -> Bool {
-        guard let generated = generatedSignupOTP else { return false }
-        return code.trimmingCharacters(in: .whitespacesAndNewlines) == generated
-    }
-    
-    func sendReferralEmail(email: String) async -> Bool {
-        let subject = "You're invited to Medhavn!"
-        let html = """
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-            <h2>Get Started on Medhavn</h2>
-            <p>Your friend has invited you to join Medhavn to track medications and manage your health.</p>
-            <p>Use referral code <strong>MEDHAVN-5X9Z</strong> when you sign up to get started!</p>
-            <p>Download Medhavn now and take control of your health journey.</p>
-        </div>
-        """
-        
+
+    /// The server generates and checks the code; the app never sees it.
+    func verifySignupOTP(code: String) async -> Bool {
+        guard let api = BackendAPI(), let email = signupEmailPendingOTP else { return false }
         do {
-            try await EmailService().sendEmail(to: email, subject: subject, html: html)
-            appLog("Referral email sent successfully to \(email)", level: .info, category: "Referral")
+            return try await api.verifyOTP(email: email, code: code.trimmingCharacters(in: .whitespacesAndNewlines))
+        } catch {
+            appLog("OTP verification failed: \(error.localizedDescription)", level: .error, category: "Auth")
+            return false
+        }
+    }
+
+    func sendReferralEmail(email: String) async -> Bool {
+        guard let api = BackendAPI(), let token = emailSessionToken else { return false }
+        do {
+            try await api.sendReferral(email: email, code: "MEDHAVN-5X9Z", token: token)
+            appLog("Referral email sent", level: .info, category: "Referral")
             return true
         } catch {
             appLog("Failed to send referral email: \(error.localizedDescription)", level: .error, category: "Referral")
             return false
         }
     }
-    
+
     func sendSafeCircleInviteEmail(name: String, email: String) async -> Bool {
-        let subject = "Invitation to join SafeCircle on Medhavn"
-        let html = """
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-            <h2>You've been added to a SafeCircle care network</h2>
-            <p>Hello \(name),</p>
-            <p>You have been designated as a trusted contact in a Medhavn user's SafeCircle network.</p>
-            <p>If they miss a critical scheduled dose of their medication, you may receive alert notifications to help keep them safe.</p>
-            <p>Thank you for being part of their care network.</p>
-        </div>
-        """
-        
+        guard let api = BackendAPI(), let token = emailSessionToken else { return false }
         do {
-            try await EmailService().sendEmail(to: email, subject: subject, html: html)
-            appLog("SafeCircle invitation email sent successfully to \(email)", level: .info, category: "SafeCircle")
+            try await api.sendSafeCircleInvite(name: name, email: email, token: token)
+            appLog("SafeCircle invitation email sent", level: .info, category: "SafeCircle")
             return true
         } catch {
             appLog("Failed to send SafeCircle invitation email: \(error.localizedDescription)", level: .error, category: "SafeCircle")
             return false
         }
+    }
+
+    /// Signed-in Supabase token for backend email routes. Nil for the local-dev stub or signed-out state.
+    private var emailSessionToken: String? {
+        guard let token = authToken, !token.isEmpty, token != "local-dev-token" else { return nil }
+        return token
     }
 
     func signup(email: String, password: String, fullName: String) async -> Bool {

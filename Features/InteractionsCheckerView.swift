@@ -258,7 +258,7 @@ struct InteractionsCheckerView: View {
             isSearchingRegistry = true
             try? await Task.sleep(nanoseconds: 280_000_000) // 280ms debounce
             guard !Task.isCancelled else { return }
-            let names = (try? await drugLookupService.searchMedicationNames(query: trimmed, limit: 10)) ?? []
+            let names = (try? await drugLookupService.searchMedicationNames(query: trimmed, limit: 10, token: appState.authToken)) ?? []
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 registrySuggestions = names

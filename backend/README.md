@@ -41,11 +41,12 @@ The job reads `safe_circle_contacts`. The iOS app must write contacts to that ta
 | `SUPABASE_URL` | yes | `https://supabasemedhavn.viktron.ai` |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | Server only. Never put it in the app. |
 | `SUPABASE_JWT_SECRET` | yes | GoTrue signing secret. Verifies tokens locally. |
-| `SMTP_HOST` | yes | For example `smtpout.secureserver.net` |
+| `RESEND_API_KEY` | no | If set, mail goes through Resend and the `SMTP_*` variables are not needed. |
+| `SMTP_HOST` | if no Resend key | For example `smtp.office365.com` |
 | `SMTP_PORT` | no | Default 465 |
-| `SMTP_USER` | yes | |
-| `SMTP_PASS` | yes | |
-| `MAIL_FROM` | no | Default is `SMTP_USER` |
+| `SMTP_USER` | if no Resend key | |
+| `SMTP_PASS` | if no Resend key | |
+| `MAIL_FROM` | yes | Must be on a domain verified with Resend, for example `info@mashtov.com` |
 | `OPENFDA_API_KEY` | no | Raises the OpenFDA rate limit |
 | `MISSED_DOSE_JOB_ENABLED` | no | Default `true` |
 | `MISSED_DOSE_JOB_INTERVAL_MIN` | no | Default 10 |
@@ -77,6 +78,13 @@ npm run typecheck
 devrun npm run dev
 ```
 
+## Production
+
+- API: `https://api-medhavn.mashtov.com` (Cloudflare certificates cover one subdomain level only, so do not use `api.medhavn.mashtov.com`).
+- The iOS app reads the address from `BACKEND_URL` in `project.yml`.
+- Mail: Microsoft 365 SMTP (`smtp.office365.com`, port 587) with `info@mashtov.com`.
+- In Coolify, turn on "Is Literal" for `SMTP_PASS`. Without it, Coolify expands any `$` in the password.
+
 ## Rotate secrets
 
-The old `supabase/functions/send-email/index.ts` has an SMTP password in plain text. Change that password at the provider. Then delete the old function after the app uses this service.
+The old Deno function `send-email` stored an SMTP password in plain text. The function is deleted, but the password remains in git history. Change that password at the provider.

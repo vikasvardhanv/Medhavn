@@ -94,6 +94,26 @@ final class CloudMedSync {
                            body: nil, prefer: "return=minimal", session: session)
     }
 
+    /// SafeCircle contacts live in `medhavn.safe_circle_contacts` so the backend can email them
+    /// when a dose is missed.
+    func push(contacts: [SafeCircleContact], session: Session) async throws {
+        guard !contacts.isEmpty else { return }
+        let rows: [[String: Any]] = contacts.map {
+            ["id": $0.id.uuidString, "user_id": session.userId, "name": $0.name,
+             "contact_info": $0.contactInfo, "relationship": $0.relationship]
+        }
+        _ = try await send(method: "POST", table: "safe_circle_contacts",
+                           query: [URLQueryItem(name: "on_conflict", value: "id")],
+                           body: rows, prefer: "resolution=merge-duplicates,return=minimal", session: session)
+    }
+
+    func deleteContact(id: UUID, session: Session) async throws {
+        _ = try await send(method: "DELETE", table: "safe_circle_contacts",
+                           query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString)"),
+                                   URLQueryItem(name: "user_id", value: "eq.\(session.userId)")],
+                           body: nil, prefer: "return=minimal", session: session)
+    }
+
     // MARK: - Pull
 
     func pull(session: Session) async throws -> (items: [CabinetRow], statuses: [StatusRow]) {

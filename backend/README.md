@@ -57,7 +57,7 @@ The job reads `safe_circle_contacts`. The iOS app must write contacts to that ta
 | `SMTP_USER` | if no Resend key | |
 | `SMTP_PASS` | if no Resend key | |
 | `MAIL_FROM` | yes | Must be on a domain verified with Resend, for example `info@mashtov.com` |
-| `APP_STORE_URL` | no | Public `https://` store link put in referral emails. Without it the email has no download button. |
+| `APP_STORE_URL` | no | Store link put in referral emails. Defaults to the Medhavn App Store page. |
 | `OPENFDA_API_KEY` | no | Raises the OpenFDA rate limit |
 | `MISSED_DOSE_JOB_ENABLED` | no | Default `true` |
 | `MISSED_DOSE_JOB_INTERVAL_MIN` | no | Default 10 |

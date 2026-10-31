@@ -43,8 +43,6 @@ const server = serve({ fetch: app.fetch, port: config.port }, (info) =>
   console.log(`medhavn-backend listening on :${info.port}`),
 );
 
-if (!config.appStoreUrl) console.warn("APP_STORE_URL not set: referral emails will have no download link");
-
 const timer = config.job.enabled ? startMissedDoseJob(config.job.intervalMin) : undefined;
 
 for (const sig of ["SIGTERM", "SIGINT"] as const) {

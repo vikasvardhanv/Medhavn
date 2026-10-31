@@ -22,8 +22,10 @@ export const config = {
           pass: need("SMTP_PASS"),
         },
   },
-  // Public store link put in referral emails. Leave unset until the app has a store page.
-  appStoreUrl: /^https:\/\//.test(process.env.APP_STORE_URL?.trim() ?? "") ? process.env.APP_STORE_URL!.trim() : "",
+  // Public store link put in referral emails. APP_STORE_URL overrides it (must be https).
+  appStoreUrl: /^https:\/\//.test(process.env.APP_STORE_URL?.trim() ?? "")
+    ? process.env.APP_STORE_URL!.trim()
+    : "https://apps.apple.com/us/app/medhavn/id6760243819",
   openFdaKey: process.env.OPENFDA_API_KEY?.trim() ?? "",
   job: {
     enabled: (process.env.MISSED_DOSE_JOB_ENABLED ?? "true") !== "false",

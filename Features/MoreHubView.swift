@@ -41,9 +41,17 @@ public struct MoreHubView: View {
                 referralSection
                     .staggeredEntrance(delay: 0.20)
 
-                // Fertility tracking section
-                fertilitySection
-                    .staggeredEntrance(delay: 0.24)
+                // Fertility tracking section (hidden for men)
+                if appState.showsFertility {
+                    fertilitySection
+                        .staggeredEntrance(delay: 0.24)
+                }
+
+                // Men's health (hidden for women)
+                if appState.showsMensHealth {
+                    mensHealthSection
+                        .staggeredEntrance(delay: 0.24)
+                }
 
                 // AI Engine & Settings Tools
                 toolsSection
@@ -390,6 +398,32 @@ public struct MoreHubView: View {
             .padding(16)
             .glassCard(cornerRadius: 16)
         }
+    }
+
+    private var mensHealthSection: some View {
+        NavigationLink {
+            MensHealthView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "figure.arms.open")
+                    .font(.title3)
+                    .foregroundStyle(AppTheme.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Men's Health")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Heart & vitals, check-ups and screenings")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(16)
+            .glassCard(cornerRadius: 16)
+        }
+        .buttonStyle(.plain)
     }
 
     private var connectionsSection: some View {

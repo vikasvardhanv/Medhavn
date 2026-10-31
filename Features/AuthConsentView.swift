@@ -22,6 +22,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var fullName = ""
     @State private var referralCodeInput = ""
+    @State private var sexChoice: Sex?
     @State private var confirmPassword = ""
     @State private var showForgotPassword = false
     @State private var showOTPVerification = false
@@ -39,7 +40,7 @@ struct LoginView: View {
         !appState.isAuthenticating
         && !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         && !password.isEmpty
-        && (mode == .login || (!confirmPassword.isEmpty && !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+        && (mode == .login || (!confirmPassword.isEmpty && !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && sexChoice != nil))
     }
 
     var body: some View {
@@ -86,6 +87,15 @@ struct LoginView: View {
                                         fieldRow {
                                             TextField("Full Name", text: $fullName)
                                                 .textInputAutocapitalization(.words)
+                                        }
+                                        fieldRow {
+                                            Picker("Sex", selection: $sexChoice) {
+                                                Text("Select sex").tag(Sex?.none)
+                                                ForEach(Sex.allCases) { Text($0.title).tag(Sex?.some($0)) }
+                                            }
+                                            .pickerStyle(.menu)
+                                            .tint(.primary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                         }
                                         fieldRow {
                                             TextField("Referral code (optional)", text: $referralCodeInput)
@@ -252,6 +262,7 @@ struct LoginView: View {
                             Button {
                                 Task {
                                     if await appState.verifySignupOTP(code: enteredOTP) {
+                                        if let sexChoice { appState.setSex(sexChoice) }
                                         appState.pendingReferralCode = referralCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
                                         let success = await appState.signup(email: email, password: password, fullName: fullName)
                                         if success {

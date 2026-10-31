@@ -79,6 +79,18 @@ struct BackendAPI {
         return (try? JSONDecoder().decode(ClaimResponse.self, from: data))?.claimed ?? false
     }
 
+    // MARK: - Profile
+
+    func fetchSex(token: String) async throws -> String? {
+        struct R: Decodable { let sex: String? }
+        let (_, data) = try await request("GET", "v1/profile", body: nil, token: token, accept: [200])
+        return try JSONDecoder().decode(R.self, from: data).sex
+    }
+
+    func saveSex(_ sex: String, token: String) async throws {
+        _ = try await request("PUT", "v1/profile", body: ["sex": sex], token: token, accept: [200])
+    }
+
     // MARK: - Transport
 
     private func post(_ path: String, body: [String: Any], token: String?, accept: Set<Int>) async throws -> Int {

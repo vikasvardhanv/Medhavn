@@ -597,6 +597,22 @@ struct FertilityLabRecord: Identifiable, Codable {
 /// Determines which view occupies the third tab bar slot.
 /// When `.period` or `.fertility` is chosen the Insights dashboard
 /// moves into the Hub; when `.none` (the default) Insights stays in the tab bar.
+enum Sex: String, Codable, CaseIterable, Identifiable {
+    case female, male, other
+    case preferNot = "prefer_not"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .female: return "Female"
+        case .male: return "Male"
+        case .other: return "Other"
+        case .preferNot: return "Prefer not to say"
+        }
+    }
+}
+
 enum TrackerPreference: String, Codable, CaseIterable {
     case none       // Default — show Insights in tab bar
     case period     // Show Period Tracker in tab bar
@@ -632,6 +648,7 @@ struct AppSettings: Codable {
     var biometricLockEnabled: Bool
     var trackerPreference: TrackerPreference
     var trackerSelectionCompleted: Bool
+    var sex: String? = nil
 
     static let `default` = AppSettings(
         firstUseDate: Date(),

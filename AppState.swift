@@ -85,6 +85,12 @@ final class AppState: ObservableObject {
     @Published var safeCirclePushEnabled: Bool = true
     @Published var appleWatchLinked: Bool = false
     @Published var lastAppleWatchSyncDate: Date? = nil
+    /// Bumped when a reminder is tapped, so the tab shell can jump to the dose screen.
+    @Published var openHomeTick = 0
+    private(set) var isBootstrapped = false
+    /// Collected at sign-up. Decides which health sections the Hub shows.
+    @Published var sex: Sex?
+    @Published var preventiveChecks: [String: Date] = [:]
     @Published var referralCount: Int = 0
     @Published var referralCode: String?
     @Published var referralStoreURL: String = ""
@@ -139,6 +145,7 @@ final class AppState: ObservableObject {
             consentChecklistCompleted = settings.consentChecklistCompleted
             trackerPreference = settings.trackerPreference
             trackerSelectionCompleted = settings.trackerSelectionCompleted
+            sex = settings.sex.flatMap(Sex.init(rawValue:))
             // Auto-complete tracker selection for existing users who signed up
             // before this feature existed — they keep the default Insights tab.
             if consentChecklistCompleted && !trackerSelectionCompleted {
@@ -163,11 +170,15 @@ final class AppState: ObservableObject {
             checkForMissedDoses()
             appLog("Bootstrap complete — isLoggedIn=\(isLoggedIn) consent=\(consentChecklistCompleted) firstLaunch=\(!isFirstLaunchSetupDone)", level: .info, category: "AppState")
 
+            isBootstrapped = true
+            applyPendingDoseActions()
+
             Task {
                 await refreshNotificationAuthorization()
                 if remindersEnabled {
                     await scheduleDoseReminders()
                 }
+                await scheduleCabinetReminders()
                 refreshProactiveSuggestions()
                 await pullCloudMeds()
             }
@@ -267,6 +278,7 @@ final class AppState: ObservableObject {
             settings.consentChecklistCompleted = consentChecklistCompleted
             settings.trackerPreference = trackerPreference
             settings.trackerSelectionCompleted = trackerSelectionCompleted
+            settings.sex = sex?.rawValue
             settings.authEmail = authEmail.isEmpty ? nil : authEmail
             settings.authUserId = authUserId
             settings.authToken = authToken
@@ -299,6 +311,7 @@ final class AppState: ObservableObject {
         updatesFeed = featureStore.load([UpdateFeedItem].self, key: "feature.updatesFeed", fallback: [])
         pillDoseStatuses = featureStore.load([PillDoseStatusRecord].self, key: "feature.pillDoseStatuses", fallback: [])
         healthMetrics = featureStore.load([HealthMetricRecord].self, key: "feature.healthMetrics", fallback: [])
+        preventiveChecks = featureStore.load([String: Date].self, key: "feature.preventiveChecks", fallback: [:])
         diaryEntries = featureStore.load([DiaryEntryRecord].self, key: "feature.diaryEntries", fallback: [])
         caregiverContact = featureStore.load(String.self, key: "feature.caregiverContact", fallback: "")
         safeCircleContacts = featureStore.load([SafeCircleContact].self, key: "feature.safeCircle", fallback: [])
@@ -328,6 +341,7 @@ final class AppState: ObservableObject {
         featureStore.save(updatesFeed, key: "feature.updatesFeed")
         featureStore.save(pillDoseStatuses, key: "feature.pillDoseStatuses")
         featureStore.save(healthMetrics, key: "feature.healthMetrics")
+        featureStore.save(preventiveChecks, key: "feature.preventiveChecks")
         featureStore.save(diaryEntries, key: "feature.diaryEntries")
         featureStore.save(caregiverContact, key: "feature.caregiverContact")
         featureStore.save(safeCircleContacts, key: "feature.safeCircle")
@@ -377,6 +391,10 @@ final class AppState: ObservableObject {
 
         persistFeatureState()
         cloudPushItem(id: item.id)
+        Task {
+            await offerReminderPermissionIfNeeded()
+            await scheduleCabinetReminders()
+        }
         return warnings
     }
 
@@ -387,6 +405,7 @@ final class AppState: ObservableObject {
         pillDoseStatuses.removeAll { $0.key.hasPrefix(prefix) }
         addUpdate(category: .adherence, title: "Medication removed", detail: "\(item.name) removed from Pharmacy.")
         persistFeatureState()
+        Task { await scheduleCabinetReminders() }
         if item.profileID == syncedProfileID {
             cloudPush("delete item") { try await $0.delete(itemID: id, session: $1) }
         }
@@ -482,6 +501,11 @@ final class AppState: ObservableObject {
             pillDoseStatuses[index].updatedAt = Date()
         } else {
             pillDoseStatuses.append(PillDoseStatusRecord(id: UUID(), key: key, status: status, updatedAt: Date()))
+        }
+
+        // A logged dose should not still ring; undoing it brings the reminder back.
+        Task {
+            if status == .pending { await scheduleCabinetReminders() } else { await notificationService.cancelPillReminder(key: key) }
         }
 
         if status == .taken && previous != .taken {
@@ -1426,6 +1450,7 @@ final class AppState: ObservableObject {
         Task {
             await pullCloudMeds()
             await claimReferralIfNeeded()
+            await syncSexWithBackend()
         }
     }
 
@@ -1454,8 +1479,10 @@ final class AppState: ObservableObject {
         Task {
             if enabled {
                 await scheduleDoseReminders()
+                await scheduleCabinetReminders()
             } else {
                 await notificationService.clearAllMedicationReminders()
+                await notificationService.clearPillReminders()
                 reminderStatusMessage = "Dose reminders disabled."
             }
             await refreshNotificationAuthorization()
@@ -1469,6 +1496,7 @@ final class AppState: ObservableObject {
             notificationPermissionGranted = granted
             if granted && remindersEnabled {
                 await scheduleDoseReminders()
+                await scheduleCabinetReminders()
             } else if !granted {
                 reminderStatusMessage = "Notification permission denied. Enable it in iOS Settings."
             }
@@ -1507,6 +1535,98 @@ final class AppState: ObservableObject {
             reminderStatusMessage = count > 0 ? "Scheduled \(count) reminder(s)." : "No upcoming doses to remind in the next 48 hours."
         } catch {
             reminderStatusMessage = "Failed to schedule reminders: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Pillbox reminders
+
+    /// Rebuilds the next week of reminders from the pillbox. Safe to call often: it replaces what is pending.
+    func scheduleCabinetReminders() async {
+        await refreshNotificationAuthorization()
+        guard remindersEnabled, notificationPermissionGranted else {
+            await notificationService.clearPillReminders()
+            return
+        }
+        let specs = medCabinetItems.map { item in
+            ReminderSpec(
+                id: item.id,
+                name: item.name,
+                dosage: item.dosageText,
+                frequency: CloudMedSync.frequencyColumn(item.frequency),
+                times: item.scheduledTimes.map { ($0.hour, $0.minute) },
+                blocks: item.scheduleBlocks.map(\.rawValue),
+                specificDays: item.specificDays,
+                intervalDays: item.intervalDays,
+                startDate: item.scheduleStartDate,
+                endDate: item.scheduleEndDate,
+                createdAt: item.createdAt
+            )
+        }
+        let done = Set(pillDoseStatuses.filter { $0.status != .pending }.map(\.key))
+        let doses = PillboxReminderPlanner.plan(specs: specs, now: Date(), isDone: { done.contains($0) })
+        let count = await notificationService.schedulePillReminders(doses)
+        appLog("Scheduled \(count) pillbox reminders", level: .info, category: "Notifications")
+    }
+
+    /// Asks for notification permission the first time someone adds a medicine, so they see why.
+    private func offerReminderPermissionIfNeeded() async {
+        guard remindersEnabled, await notificationService.authorizationStatus() == .notDetermined else { return }
+        let granted = await notificationService.requestAuthorization()
+        notificationPermissionGranted = granted
+    }
+
+    func openHomeFromNotification() { openHomeTick += 1 }
+
+    // MARK: - Sex and personalised sections
+
+    /// Female-specific tools (fertility, period) are hidden for men. Everyone else keeps them.
+    var showsFertility: Bool { sex != .male }
+    /// Men's health is hidden for women. Everyone else can use it.
+    var showsMensHealth: Bool { sex != .female }
+
+    func setSex(_ value: Sex) {
+        sex = value
+        if value == .male {
+            // No tracker choice to make: skip the period/fertility picker.
+            trackerSelectionCompleted = true
+            trackerPreference = .none
+        }
+        saveSettings()
+        Task { await syncSexWithBackend() }
+    }
+
+    /// Keeps the account's sex in the database so it follows the user to a new phone.
+    func syncSexWithBackend() async {
+        guard let api = BackendAPI(), let token = emailSessionToken else { return }
+        do {
+            if let sex {
+                try await api.saveSex(sex.rawValue, token: token)
+            } else if let remote = try await api.fetchSex(token: token), let value = Sex(rawValue: remote) {
+                sex = value
+                if value == .male { trackerSelectionCompleted = true; trackerPreference = .none }
+                saveSettings()
+            }
+        } catch {
+            appLog("Sex sync failed: \(error.localizedDescription)", level: .warning, category: "Profile")
+        }
+    }
+
+    func markPreventiveCheckDone(_ id: String) {
+        preventiveChecks[id] = Date()
+        persistFeatureState()
+    }
+
+    /// Applies Taken / Skip presses that arrived from a notification. Runs once AppState has loaded.
+    func applyPendingDoseActions() {
+        guard isBootstrapped else { return }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd" // same as doseKey
+        for action in NotificationRouter.drainQueue() {
+            guard let itemID = action["itemID"].flatMap(UUID.init(uuidString:)),
+                  let block = action["block"].flatMap(DayTimeBlock.init(rawValue:)),
+                  let date = action["day"].flatMap(formatter.date(from:)),
+                  let status = action["status"].flatMap(DoseStatusKind.init(rawValue:)) else { continue }
+            markDose(itemID: itemID, block: block, date: date, status: status)
         }
     }
 
@@ -1578,6 +1698,8 @@ final class AppState: ObservableObject {
         updatesFeed = []
         pillDoseStatuses = []
         healthMetrics = []
+        preventiveChecks = [:]
+        sex = nil
         diaryEntries = []
         safeCircleContacts = []
         dependents = []

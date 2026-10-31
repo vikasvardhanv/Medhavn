@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct MedhavnApp: App {
@@ -6,6 +7,9 @@ struct MedhavnApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // Must be set before launch finishes so a tap on a reminder is not missed.
+        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+
         // Use a transparent navigation bar with frosted ultra-thin material blur
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithTransparentBackground()
@@ -43,13 +47,20 @@ struct MedhavnApp: App {
                 .environmentObject(appState)
                 .preferredColorScheme(.dark)
                 .task {
+                    NotificationRouter.shared.appState = appState
                     appState.bootstrap()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .background { appState.lockApp() }
                     // Back in the foreground (for example opened from AuraPath):
                     // sync medicines and dose ticks so both apps agree.
-                    if phase == .active { Task { await appState.pullCloudMeds() } }
+                    if phase == .active {
+                        Task {
+                            await appState.pullCloudMeds()
+                            await appState.scheduleCabinetReminders()
+                        }
+                        appState.applyPendingDoseActions()
+                    }
                 }
                 .onOpenURL { url in
                     if InviteLinkHandler.shared.handle(url: url) {
@@ -85,7 +96,7 @@ struct RootView: View, AppStateProvider {
                 LoginView()
             } else if !appState.consentChecklistCompleted {
                 ConsentChecklistView()
-            } else if !appState.trackerSelectionCompleted {
+            } else if !appState.trackerSelectionCompleted && appState.showsFertility {
                 TrackerSelectionView()
             } else {
                 tabShell
@@ -135,6 +146,13 @@ struct RootView: View, AppStateProvider {
         }
         .tabViewStyle(.automatic)
         .toolbar(.visible, for: .tabBar)
+        .onChange(of: appState.openHomeTick) { _, _ in selectedTab = .home }
+        .sheet(isPresented: Binding(
+            get: { appState.isLoggedIn && appState.consentChecklistCompleted && appState.sex == nil },
+            set: { _ in }
+        )) {
+            SexPromptView().environmentObject(appState).interactiveDismissDisabled()
+        }
         .ignoresSafeArea()
         .overlay(alignment: .bottomTrailing) {
             FloatingPillChatHost()

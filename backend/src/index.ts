@@ -11,6 +11,7 @@ import { email } from "./routes/email.js";
 import { logs } from "./routes/logs.js";
 import { otp } from "./routes/otp.js";
 import { connections } from "./routes/connections.js";
+import { profile } from "./routes/profile.js";
 import { referrals } from "./routes/referrals.js";
 import { shares } from "./routes/shares.js";
 
@@ -30,6 +31,7 @@ app.use("/v1/drugs/*", requireUser, rateLimitUser("drugs", 120, 60_000));
 app.use("/v1/logs", requireUser, rateLimitUser("logs", 30, 60_000));
 app.use("/v1/referrals/*", requireUser);
 app.use("/v1/referrals", requireUser);
+app.use("/v1/profile", requireUser);
 app.use("/v1/connections/*", requireUser);
 app.use("/v1/connections", requireUser);
 app.use("/v1/shares/*", requireUser);
@@ -38,6 +40,7 @@ app.route("/v1/email", email);
 app.route("/v1/drugs", drugs);
 app.route("/v1/logs", logs);
 app.route("/v1/referrals", referrals);
+app.route("/v1/profile", profile);
 app.route("/v1/connections", connections);
 app.route("/v1/shares", shares);
 

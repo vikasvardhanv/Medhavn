@@ -8,12 +8,16 @@ protocol MedicationNotificationServicing {
     func clearAllMedicationReminders() async
     func scheduleDoseReminders(planName: String, planID: UUID, events: [DoseEvent]) async throws -> Int
     func scheduleAppointmentAlert(title: String, doctorName: String, date: Date, appointmentID: UUID) async throws
+    func schedulePillReminders(_ doses: [PlannedDose]) async -> Int
+    func cancelPillReminder(key: String) async
+    func clearPillReminders() async
 }
 
 struct MedicationNotificationService: MedicationNotificationServicing {
     private let center = UNUserNotificationCenter.current()
     private let reminderPrefix = "medhavn-dose-"
     private let appointmentPrefix = "medhavn-appt-"
+    private let pillPrefix = "medhavn-pill-"
 
     init() {
         registerCategories()
@@ -37,7 +41,18 @@ struct MedicationNotificationService: MedicationNotificationServicing {
             intentIdentifiers: [],
             options: []
         )
-        center.setNotificationCategories([category])
+        // Pillbox reminders: three buttons on the notification. Tapping the body opens the app.
+        let pillCategory = UNNotificationCategory(
+            identifier: NotificationRouter.pillCategory,
+            actions: [
+                UNNotificationAction(identifier: NotificationRouter.takenAction, title: "Taken", options: []),
+                UNNotificationAction(identifier: NotificationRouter.snoozeAction, title: "Snooze 10 min", options: []),
+                UNNotificationAction(identifier: NotificationRouter.skipAction, title: "Skip", options: [.destructive]),
+            ],
+            intentIdentifiers: [],
+            options: []
+        )
+        center.setNotificationCategories([category, pillCategory])
     }
 
     func requestAuthorization() async -> Bool {
@@ -134,6 +149,55 @@ struct MedicationNotificationService: MedicationNotificationServicing {
         let id = "\(appointmentPrefix)\(appointmentID.uuidString)"
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         try await center.add(request)
+    }
+
+    // MARK: - Pillbox reminders
+
+    /// Replaces every pending pillbox reminder with `doses`. Returns how many were scheduled.
+    func schedulePillReminders(_ doses: [PlannedDose]) async -> Int {
+        let status = await authorizationStatus()
+        guard status == .authorized || status == .provisional else { return 0 }
+        await clearPillReminders()
+
+        var count = 0
+        for dose in doses {
+            let content = UNMutableNotificationContent()
+            content.title = "Time for \(dose.name)"
+            content.body = dose.dosage.isEmpty ? "Tap to log your \(dose.block) dose." : "\(dose.dosage) · tap to log your \(dose.block) dose."
+            content.sound = .default
+            content.categoryIdentifier = NotificationRouter.pillCategory
+            content.threadIdentifier = dose.itemID.uuidString
+            content.userInfo = NotificationRouter.userInfo(for: dose)
+            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: dose.fire)
+            let request = UNNotificationRequest(
+                identifier: "\(pillPrefix)\(dose.key)",
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            )
+            do {
+                try await center.add(request)
+                count += 1
+            } catch {
+                appLog("Could not schedule pill reminder: \(error.localizedDescription)", level: .warning, category: "Notifications")
+            }
+        }
+        return count
+    }
+
+    /// Drops the pending reminder (and any snooze) for one dose, for example once it is logged.
+    func cancelPillReminder(key: String) async {
+        center.removePendingNotificationRequests(withIdentifiers: ["\(pillPrefix)\(key)", "\(pillPrefix)snooze-\(key)"])
+        center.removeDeliveredNotifications(withIdentifiers: ["\(pillPrefix)\(key)", "\(pillPrefix)snooze-\(key)"])
+    }
+
+    func clearPillReminders() async {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                let ids = requests.map(\.identifier).filter { $0.hasPrefix(pillPrefix) }
+                if !ids.isEmpty { center.removePendingNotificationRequests(withIdentifiers: ids) }
+                continuation.resume()
+            }
+        }
     }
 
     private func formatDose(_ value: Double) -> String {

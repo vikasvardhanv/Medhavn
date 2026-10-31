@@ -50,23 +50,54 @@ struct BackendAPI {
         _ = try await post("v1/email/safecircle-invite", body: ["name": name, "email": email], token: token, accept: [200])
     }
 
-    func sendReferral(email: String, code: String, token: String) async throws {
-        _ = try await post("v1/email/referral", body: ["email": email, "code": code], token: token, accept: [200])
+    // MARK: - Referrals
+
+    struct ReferralSummary: Decodable {
+        let code: String
+        let appStoreUrl: String
+        let signedUpCount: Int
+    }
+
+    private struct InviteResponse: Decodable { let code: String }
+    private struct ClaimResponse: Decodable { let claimed: Bool }
+
+    func fetchReferrals(token: String) async throws -> ReferralSummary {
+        let (_, data) = try await request("GET", "v1/referrals", body: nil, token: token, accept: [200])
+        return try JSONDecoder().decode(ReferralSummary.self, from: data)
+    }
+
+    /// Stores the invite and emails it. `relationship` is what the invitee is to the user.
+    func sendReferral(email: String, relationship: String, token: String) async throws {
+        _ = try await request("POST", "v1/referrals", body: ["email": email, "relationship": relationship], token: token, accept: [200])
+    }
+
+    /// Links this new account to whoever invited it. Matches by email, or by `code` when given.
+    func claimReferral(code: String?, token: String) async throws -> Bool {
+        var body: [String: Any] = [:]
+        if let code, !code.isEmpty { body["code"] = code }
+        let (_, data) = try await request("POST", "v1/referrals/claim", body: body, token: token, accept: [200])
+        return (try? JSONDecoder().decode(ClaimResponse.self, from: data))?.claimed ?? false
     }
 
     // MARK: - Transport
 
     private func post(_ path: String, body: [String: Any], token: String?, accept: Set<Int>) async throws -> Int {
-        var request = URLRequest(url: baseURL.appending(path: path))
-        request.httpMethod = "POST"
-        request.timeoutInterval = 30
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        try await request("POST", path, body: body, token: token, accept: accept).status
+    }
 
-        let (_, response) = try await session.data(for: request)
+    private func request(_ method: String, _ path: String, body: [String: Any]?, token: String?, accept: Set<Int>) async throws -> (status: Int, data: Data) {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        request.timeoutInterval = 30
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+
+        let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        if accept.contains(status) { return status }
+        if accept.contains(status) { return (status, data) }
         if status == 401 { throw BackendError.unauthorized }
         if status == 429 { throw BackendError.rateLimited }
         throw BackendError.server(status)

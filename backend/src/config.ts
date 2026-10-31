@@ -22,6 +22,8 @@ export const config = {
           pass: need("SMTP_PASS"),
         },
   },
+  // Public store link put in referral emails. Leave unset until the app has a store page.
+  appStoreUrl: /^https:\/\//.test(process.env.APP_STORE_URL?.trim() ?? "") ? process.env.APP_STORE_URL!.trim() : "",
   openFdaKey: process.env.OPENFDA_API_KEY?.trim() ?? "",
   job: {
     enabled: (process.env.MISSED_DOSE_JOB_ENABLED ?? "true") !== "false",

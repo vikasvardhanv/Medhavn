@@ -35,17 +35,22 @@ export function safeCircleInviteEmail(name: string) {
   };
 }
 
-export function referralEmail(code?: string) {
-  const codeLine = code
-    ? `<p>Use referral code <strong>${escapeHtml(code)}</strong> when you sign up to get started!</p>`
+export function referralEmail(opts: { inviterName: string; code: string; appStoreUrl: string; family: boolean }) {
+  const who = escapeHtml(opts.inviterName);
+  const intro = opts.family
+    ? `${who} invited you to Medhavn so you can stay connected and look out for each other's health.`
+    : `${who} invited you to join Medhavn to track medications and manage your health.`;
+  const button = opts.appStoreUrl
+    ? `<p><a href="${escapeHtml(opts.appStoreUrl)}" style="display:inline-block;background:#007AFF;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Download Medhavn</a></p>`
     : "";
   return {
-    subject: "You're invited to Medhavn!",
+    subject: `${opts.inviterName} invited you to Medhavn`,
     html: wrap(`
-      <h2>Get Started on Medhavn</h2>
-      <p>Your friend has invited you to join Medhavn to track medications and manage your health.</p>
-      ${codeLine}
-      <p>Download Medhavn now and take control of your health journey.</p>`),
+      <h2>You're invited to Medhavn</h2>
+      <p>${intro}</p>
+      ${button}
+      <p>Sign up with this email address and we will connect you automatically. Or enter this referral code during sign-up:</p>
+      <div style="font-size: 22px; font-weight: bold; letter-spacing: 3px; padding: 12px; background-color: #f2f2f7; border-radius: 8px; display: inline-block;">${escapeHtml(opts.code)}</div>`),
   };
 }
 

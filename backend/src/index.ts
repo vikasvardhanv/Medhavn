@@ -10,6 +10,7 @@ import { drugs } from "./routes/drugs.js";
 import { email } from "./routes/email.js";
 import { logs } from "./routes/logs.js";
 import { otp } from "./routes/otp.js";
+import { referrals } from "./routes/referrals.js";
 
 const app = new Hono();
 
@@ -25,9 +26,12 @@ app.route("/v1/otp", otp);
 app.use("/v1/email/*", requireUser, rateLimitUser("email", 20, 60 * 60_000));
 app.use("/v1/drugs/*", requireUser, rateLimitUser("drugs", 120, 60_000));
 app.use("/v1/logs", requireUser, rateLimitUser("logs", 30, 60_000));
+app.use("/v1/referrals/*", requireUser);
+app.use("/v1/referrals", requireUser);
 app.route("/v1/email", email);
 app.route("/v1/drugs", drugs);
 app.route("/v1/logs", logs);
+app.route("/v1/referrals", referrals);
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 app.onError((err, c) => {
@@ -38,6 +42,8 @@ app.onError((err, c) => {
 const server = serve({ fetch: app.fetch, port: config.port }, (info) =>
   console.log(`medhavn-backend listening on :${info.port}`),
 );
+
+if (!config.appStoreUrl) console.warn("APP_STORE_URL not set: referral emails will have no download link");
 
 const timer = config.job.enabled ? startMissedDoseJob(config.job.intervalMin) : undefined;
 

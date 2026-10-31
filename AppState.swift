@@ -85,7 +85,11 @@ final class AppState: ObservableObject {
     @Published var safeCirclePushEnabled: Bool = true
     @Published var appleWatchLinked: Bool = false
     @Published var lastAppleWatchSyncDate: Date? = nil
-    @Published var referralCount: Int = 2
+    @Published var referralCount: Int = 0
+    @Published var referralCode: String?
+    @Published var referralStoreURL: String = ""
+    /// Optional code typed on the sign-up form; sent to the backend once the account exists.
+    var pendingReferralCode: String?
     @Published var userHealthPoints: Int = 340
 
     // Email/OTP state
@@ -1285,15 +1289,43 @@ final class AppState: ObservableObject {
         }
     }
 
-    func sendReferralEmail(email: String) async -> Bool {
+    /// `relationship` is what the invitee is to the user: friend, parent, child, spouse, sibling or other.
+    func sendReferralEmail(email: String, relationship: String = "friend") async -> Bool {
         guard let api = BackendAPI(), let token = emailSessionToken else { return false }
         do {
-            try await api.sendReferral(email: email, code: "MEDHAVN-5X9Z", token: token)
+            try await api.sendReferral(email: email, relationship: relationship, token: token)
             appLog("Referral email sent", level: .info, category: "Referral")
+            await refreshReferrals()
             return true
         } catch {
             appLog("Failed to send referral email: \(error.localizedDescription)", level: .error, category: "Referral")
             return false
+        }
+    }
+
+    /// Loads the user's real code and progress from the backend.
+    func refreshReferrals() async {
+        guard let api = BackendAPI(), let token = emailSessionToken else { return }
+        do {
+            let summary = try await api.fetchReferrals(token: token)
+            referralCode = summary.code
+            referralStoreURL = summary.appStoreUrl
+            referralCount = summary.signedUpCount
+        } catch {
+            appLog("Referral refresh failed: \(error.localizedDescription)", level: .warning, category: "Referral")
+        }
+    }
+
+    /// Links a freshly signed-up account to whoever invited it. Harmless to repeat: the backend ignores it once linked.
+    private func claimReferralIfNeeded() async {
+        guard let api = BackendAPI(), let token = emailSessionToken else { return }
+        do {
+            if try await api.claimReferral(code: pendingReferralCode, token: token) {
+                appLog("Referral linked", level: .info, category: "Referral")
+            }
+            pendingReferralCode = nil
+        } catch {
+            appLog("Referral claim failed: \(error.localizedDescription)", level: .warning, category: "Referral")
         }
     }
 
@@ -1391,7 +1423,10 @@ final class AppState: ObservableObject {
         authRefreshToken = session.refreshToken
         authErrorMessage = nil
         saveSettings()
-        Task { await pullCloudMeds() }
+        Task {
+            await pullCloudMeds()
+            await claimReferralIfNeeded()
+        }
     }
 
     func completeConsentChecklist() {

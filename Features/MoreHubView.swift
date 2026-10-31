@@ -4,6 +4,7 @@ import MedicationLogicEngine
 public struct MoreHubView: View {
     @EnvironmentObject private var appState: AppState
     @State private var referralEmail = ""
+    @State private var referralRelationship = "friend"
     @State private var showReferralAlert = false
     @State private var referralAlertMessage = ""
 
@@ -387,6 +388,11 @@ public struct MoreHubView: View {
         }
     }
 
+    private func referralShareText(code: String) -> String {
+        let link = appState.referralStoreURL.isEmpty ? "" : "\nDownload: \(appState.referralStoreURL)"
+        return "Join me on Medhavn! Use my referral code \(code) when you sign up.\(link)"
+    }
+
     private var referralSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Invite Friends & Family")
@@ -431,25 +437,34 @@ public struct MoreHubView: View {
                         .background(Color.white.opacity(0.12))
                 }
 
-                Button {
-                    appState.referralCount = min(appState.referralCount + 1, 5)
-                    UIPasteboard.general.string = "Use my code MEDHAVN-5X9Z to get started on Medhavn!"
-                } label: {
-                    Label("Share Referral Code (MEDHAVN-5X9Z)", systemImage: "square.and.arrow.up")
-                        .font(.caption.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(AppTheme.primary)
-                        .foregroundStyle(.black)
-                        .clipShape(Capsule())
+                if let code = appState.referralCode {
+                    ShareLink(item: referralShareText(code: code)) {
+                        Label("Share My Code (\(code))", systemImage: "square.and.arrow.up")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppTheme.primary)
+                            .foregroundStyle(.black)
+                            .clipShape(Capsule())
+                    }
                 }
-                
+
                 Divider().overlay(.white.opacity(0.15))
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Or refer via email:")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.white.opacity(0.8))
+
+                    Picker("They are my", selection: $referralRelationship) {
+                        Text("Friend").tag("friend")
+                        Text("Parent").tag("parent")
+                        Text("Child").tag("child")
+                        Text("Spouse").tag("spouse")
+                        Text("Sibling").tag("sibling")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(AppTheme.primary)
                     
                     HStack(spacing: 8) {
                         TextField("Friend's email address", text: $referralEmail)
@@ -465,9 +480,8 @@ public struct MoreHubView: View {
                             let email = referralEmail.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !email.isEmpty else { return }
                             Task {
-                                let success = await appState.sendReferralEmail(email: email)
+                                let success = await appState.sendReferralEmail(email: email, relationship: referralRelationship)
                                 if success {
-                                    appState.referralCount = min(appState.referralCount + 1, 5)
                                     referralAlertMessage = "Referral email sent successfully to \(email)!"
                                     referralEmail = ""
                                 } else {
@@ -490,6 +504,7 @@ public struct MoreHubView: View {
             }
             .padding(16)
             .glassCard(cornerRadius: 16)
+            .task { await appState.refreshReferrals() }
             .alert("Referral", isPresented: $showReferralAlert) {
                 Button("OK", role: .cancel) { }
             } message: {

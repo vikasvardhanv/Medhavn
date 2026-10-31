@@ -85,8 +85,12 @@ struct BackendAPI {
         try await request("POST", path, body: body, token: token, accept: accept).status
     }
 
-    private func request(_ method: String, _ path: String, body: [String: Any]?, token: String?, accept: Set<Int>) async throws -> (status: Int, data: Data) {
-        var request = URLRequest(url: baseURL.appending(path: path))
+    func request(_ method: String, _ path: String, body: [String: Any]?, token: String?, accept: Set<Int>) async throws -> (status: Int, data: Data) {
+        // appending(path:) would percent-encode a "?", so split off the query first.
+        let parts = path.split(separator: "?", maxSplits: 1).map(String.init)
+        var components = URLComponents(url: baseURL.appending(path: parts[0]), resolvingAgainstBaseURL: false)!
+        if parts.count > 1 { components.query = parts[1] }
+        var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.timeoutInterval = 30
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }

@@ -33,6 +33,10 @@ public struct MoreHubView: View {
                 appleWatchSection
                     .staggeredEntrance(delay: 0.16)
 
+                // Connections & sharing
+                connectionsSection
+                    .staggeredEntrance(delay: 0.18)
+
                 // Referral Section
                 referralSection
                     .staggeredEntrance(delay: 0.20)
@@ -386,6 +390,32 @@ public struct MoreHubView: View {
             .padding(16)
             .glassCard(cornerRadius: 16)
         }
+    }
+
+    private var connectionsSection: some View {
+        NavigationLink {
+            SharingView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.2.fill")
+                    .font(.title3)
+                    .foregroundStyle(AppTheme.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Connections & Sharing")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Choose who can see your health info")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(16)
+            .glassCard(cornerRadius: 16)
+        }
+        .buttonStyle(.plain)
     }
 
     private func referralShareText(code: String) -> String {

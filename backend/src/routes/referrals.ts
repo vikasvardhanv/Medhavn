@@ -4,7 +4,7 @@ import { config } from "../config.js";
 import { db } from "../db.js";
 import { sendMail } from "../mailer.js";
 import { allow } from "../ratelimit.js";
-import { generateCode, isFamily, normalizeEmail, RELATIONSHIPS, type Relationship } from "../referral.js";
+import { generateCode, normalizeEmail, RELATIONSHIPS, type Relationship } from "../referral.js";
 import { referralEmail } from "../templates.js";
 
 export const referrals = new Hono<{ Variables: { userId: string; email: string } }>();
@@ -86,7 +86,7 @@ referrals.post("/", async (c) => {
   try {
     await sendMail(
       email,
-      referralEmail({ inviterName: name, code, appStoreUrl: config.appStoreUrl, family: isFamily(relationship) }),
+      referralEmail({ inviterName: name, code, appStoreUrl: config.appStoreUrl, family: relationship !== "friend" && relationship !== "other" }),
     );
   } catch (err) {
     console.error("referral email failed", err instanceof Error ? err.message : err);
@@ -150,9 +150,9 @@ referrals.post("/claim", async (c) => {
   // 23505: a concurrent call already linked this user.
   if (uErr) return uErr.code === "23505" ? c.json({ claimed: false, reason: "already_linked" }) : Promise.reject(uErr);
 
-  if (isFamily(row.relationship as Relationship)) {
+  {
     const { error: fErr } = await db
-      .from("family_links")
+      .from("connections")
       .upsert(
         { user_id: row.referrer_id, linked_user_id: userId, relationship: row.relationship, status: "pending" },
         { onConflict: "user_id,linked_user_id", ignoreDuplicates: true },

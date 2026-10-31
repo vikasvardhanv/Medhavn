@@ -15,6 +15,17 @@ Stack: Node 22, TypeScript, Hono.
 | `GET /v1/referrals` | user JWT | The user's referral code, store link, and invite progress |
 | `POST /v1/referrals` `{email, relationship}` | user JWT | Record an invite and email it with the store link and code |
 | `POST /v1/referrals/claim` `{code?}` | user JWT | Link a new account to its inviter, by email or by code |
+| `GET /v1/connections` | user JWT | People I am connected to, including declined ones |
+| `POST /v1/connections` `{email, relationship}` | user JWT | Ask an existing user to connect. Sends again after a decline. |
+| `POST /v1/connections/:id/respond` `{accept}` | user JWT | Accept or decline. The sender gets an email. A decline can be undone. |
+| `DELETE /v1/connections/:id` | user JWT | Remove a connection and stop all sharing between the two |
+| `GET /v1/shares` | user JWT | What I share, and what is shared with me |
+| `POST /v1/shares` `{connectionId, direction, scopes}` | user JWT | Offer my data, or ask to see theirs |
+| `POST /v1/shares/:id/respond` `{accept, scopes?}` | user JWT | The other person accepts or declines. An owner may narrow the scopes. |
+| `PATCH /v1/shares/:id` `{scopes}` | owner | Change what is shared |
+| `DELETE /v1/shares/:id` | owner or viewer | Stop sharing. Takes effect at once. |
+| `GET /v1/shares/:id/adherence` | viewer | Taken and missed counts, no medicine names |
+| `GET /v1/shares/:id/medications` | viewer | Medicine list (needs the medications scope) |
 | `GET /v1/drugs/suggest?q=&limit=` | user JWT | Drug name suggestions from OpenFDA |
 | `POST /v1/logs` `{logs:[...]}` | user JWT | Store sanitized app logs |
 
@@ -28,7 +39,18 @@ Clients never send HTML or a From address. Templates live in `src/templates.ts`.
 - Each user gets an 8-character code, stored in `user_profiles.referral_code`.
 - Every invite is a row in `referrals` (inviter, invitee email, relationship, status).
 - When the invitee signs up, the app calls `/v1/referrals/claim`. The backend matches the invite by email, or by the code typed at sign-up. Status becomes `signed_up`.
-- If the relationship is parent, child, spouse or sibling, the claim also adds a `family_links` row with status `pending`. A pending link gives no access to health data.
+- The claim also adds a `connections` row with status `pending`. A connection gives no access to health data.
+
+## Sharing health data
+
+- Run `supabase/sql/009_sharing.sql` after 008.
+- A relationship label (parent, child, friend) never grants access. Access comes only from a share.
+- A share has an owner, a viewer, and scopes: `alerts`, `adherence`, `medications`. The owner can choose any scope for anyone they are connected to.
+- The person who did not propose the share must accept. The data owner therefore always consents.
+- A declined request emails the sender. The decliner can accept later, and the sender can send again.
+- Every read of another person's data goes through `routes/shares.ts`, which checks for an active share first. App users cannot read other users' rows directly, because of row-level security.
+- Grants, accepts, declines and revokes are recorded in `share_audit`. It holds no health data.
+- Alerts: SafeCircle contacts and viewers with the `alerts` scope get a neutral email. Medicine names appear only for viewers with the `medications` scope.
 
 ## Missed-dose alerts
 

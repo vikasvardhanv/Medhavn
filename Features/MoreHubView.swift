@@ -367,8 +367,17 @@ public struct MoreHubView: View {
                             .foregroundStyle(.white.opacity(0.7))
                     }
                     Spacer()
-                    Toggle("", isOn: $appState.appleWatchLinked)
-                        .labelsHidden()
+                    Toggle("", isOn: Binding(
+                        get: { appState.appleWatchLinked },
+                        set: { on in Task { await appState.setAppleWatchLinked(on) } }
+                    ))
+                    .labelsHidden()
+                }
+
+                if let message = appState.appleWatchStatusMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
 
                 if appState.appleWatchLinked {
@@ -382,7 +391,7 @@ public struct MoreHubView: View {
                         }
                         Spacer()
                         Button {
-                            appState.syncAppleWatch()
+                            Task { await appState.syncAppleWatch() }
                         } label: {
                             Text("Sync Now")
                                 .font(.caption.weight(.bold))

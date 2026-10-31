@@ -188,6 +188,11 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
     // Metabolic
     case glucose         = "Glucose"
     case weight          = "Weight"
+    // From Apple Watch / Health
+    case restingPulse    = "Resting Heart Rate"
+    case hrv             = "Heart Rate Variability"
+    case steps           = "Steps"
+    case sleep           = "Sleep"
 
     var id: String { rawValue }
 
@@ -195,9 +200,9 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
 
     var section: Section {
         switch self {
-        case .painLevel, .peakFlow, .spO2: return .general
+        case .painLevel, .peakFlow, .spO2, .steps, .sleep: return .general
         case .basalBodyTemp, .cervicalMucus, .ovulationTest, .sexualActivity, .spotting: return .reproductive
-        case .bloodPressure, .pulse, .temperature: return .vitals
+        case .bloodPressure, .pulse, .temperature, .restingPulse, .hrv: return .vitals
         case .glucose, .weight: return .metabolic
         }
     }
@@ -217,6 +222,10 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
         case .temperature: return "°F"
         case .glucose: return "mg/dL"
         case .weight: return "lbs"
+        case .restingPulse: return "bpm"
+        case .hrv: return "ms"
+        case .steps: return "steps"
+        case .sleep: return "hr"
         }
     }
 
@@ -235,6 +244,10 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
         case .temperature: return "thermometer.sun.fill"
         case .glucose: return "drop.circle"
         case .weight: return "scalemass.fill"
+        case .restingPulse: return "heart.text.square"
+        case .hrv: return "waveform.path.ecg.rectangle"
+        case .steps: return "figure.walk"
+        case .sleep: return "bed.double.fill"
         }
     }
 }

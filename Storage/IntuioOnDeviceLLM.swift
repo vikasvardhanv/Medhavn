@@ -171,6 +171,8 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     }
 
     func generateReply(for userText: String, history: [IntuioAssistantTurn], appState: AppState?) async -> String {
+        // Data questions and app actions are answered from the user's real data, never by the model.
+        if let appState, let answer = IntuioAssistantTools.handle(userText, appState: appState) { return answer }
         let prompt = buildPrompt(userText: userText, history: history, appState: appState)
 
         #if canImport(MLX) && canImport(MLXLLM) && canImport(MLXLMCommon) && !targetEnvironment(simulator)
@@ -214,8 +216,11 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
             return "\(role): \(turn.text)"
         }.joined(separator: "\n")
 
+        let facts = appState.map { IntuioAssistantTools.context(appState: $0) } ?? ""
         return """
         You are Intuio, a concise medication support assistant in a patient app.
+        Use only the facts below about this user. If something is not listed, say you do not know.
+        \(facts)
         Current Appointments: \(apptsStr)
         Current Medications: \(medsStr)
         Keep responses short, practical, and safety-first.
@@ -235,35 +240,8 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
     private func fallbackReply(for userText: String, appState: AppState?) -> String {
         let q = userText.lowercased()
 
-        // Tools execution via keywords
-        if q.contains("schedule") || q.contains("add appointment") || q.contains("book") {
-            if let appState = appState {
-                let type: String
-                if q.contains("fast") || q.contains("lab") {
-                    type = "Fasting Lab"
-                } else if q.contains("blood") {
-                    type = "Blood Test"
-                } else if q.contains("vacc") {
-                    type = "Vaccination"
-                } else {
-                    type = "Routine Checkup"
-                }
-                
-                var doctor = "General Practitioner"
-                if q.contains("smith") {
-                    doctor = "Dr. Smith"
-                } else if q.contains("joe") {
-                    doctor = "Dr. Joe"
-                }
-                
-                let title = q.contains("dentist") ? "Dental Appointment" : "\(type) Appointment"
-                let date = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                let newAppt = AppointmentRecord(id: UUID(), title: title, doctorName: doctor, date: date, notes: "Added automatically by Intuio AI assistant.", type: type)
-                appState.addAppointment(newAppt)
-                return "I have successfully scheduled a \(title) with \(doctor) for tomorrow at \(date.formatted(date: .omitted, time: .shortened))."
-            }
-        }
-        
+        if let appState, let answer = IntuioAssistantTools.handle(userText, appState: appState) { return answer }
+
         if q.contains("my appointments") || q.contains("what appointments") || q.contains("list appointments") || q.contains("upcoming appointments") {
             if let appState = appState {
                 let list = appState.appointments
@@ -272,30 +250,6 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
                 }
                 let itemsText = list.map { "- \($0.title) with \($0.doctorName) on \($0.date.formatted(date: .abbreviated, time: .shortened)) (\($0.type))" }.joined(separator: "\n")
                 return "Here are your scheduled appointments:\n\(itemsText)"
-            }
-        }
-
-        if q.contains("refill") && (q.contains("order") || q.contains("request") || q.contains("place")) {
-            if let appState = appState {
-                if let item = appState.medCabinetItems.first(where: { $0.remainingPills <= $0.refillThreshold }) {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        await MainActor.run {
-                            appState.refillMedCabinetItem(id: item.id, amount: 30)
-                            appState.addUpdate(category: .refill, title: "Refill request sent", detail: "Placed automatic refill order for \(item.name) at CVS pharmacy.")
-                        }
-                    }
-                    return "I've dispatched an automatic refill request for \(item.name) to your connected pharmacy (CVS). You will receive a notification when it's ready."
-                } else if let first = appState.medCabinetItems.first {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        await MainActor.run {
-                            appState.refillMedCabinetItem(id: first.id, amount: 30)
-                            appState.addUpdate(category: .refill, title: "Refill request sent", detail: "Placed automatic refill order for \(first.name) at CVS pharmacy.")
-                        }
-                    }
-                    return "I've dispatched an automatic refill request for \(first.name) to your connected pharmacy (CVS)."
-                }
             }
         }
 

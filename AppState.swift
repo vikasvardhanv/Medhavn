@@ -85,6 +85,7 @@ final class AppState: ObservableObject {
     @Published var safeCirclePushEnabled: Bool = true
     @Published var appleWatchLinked: Bool = false
     @Published var lastAppleWatchSyncDate: Date? = nil
+    @Published var appleWatchStatusMessage: String?
     /// Bumped when a reminder is tapped, so the tab shell can jump to the dose screen.
     @Published var openHomeTick = 0
     private(set) var isBootstrapped = false
@@ -118,6 +119,7 @@ final class AppState: ObservableObject {
     }()
     let authService: AuthServicing = AuthAPI()
     let notificationService: MedicationNotificationServicing = MedicationNotificationService()
+    private let healthKit = HealthKitManager()
     let insightsEngine = ProactiveInsightsEngine()
     let localNoteEngine: IntuioLocalNoteGenerating = IntuioLocalNoteEngineFactory.make()
     let featureStore = FeatureStateStore()
@@ -312,6 +314,8 @@ final class AppState: ObservableObject {
         pillDoseStatuses = featureStore.load([PillDoseStatusRecord].self, key: "feature.pillDoseStatuses", fallback: [])
         healthMetrics = featureStore.load([HealthMetricRecord].self, key: "feature.healthMetrics", fallback: [])
         preventiveChecks = featureStore.load([String: Date].self, key: "feature.preventiveChecks", fallback: [:])
+        appleWatchLinked = featureStore.load(Bool.self, key: "feature.appleWatchLinked", fallback: false)
+        lastAppleWatchSyncDate = featureStore.load(Date?.self, key: "feature.lastAppleWatchSync", fallback: nil)
         diaryEntries = featureStore.load([DiaryEntryRecord].self, key: "feature.diaryEntries", fallback: [])
         caregiverContact = featureStore.load(String.self, key: "feature.caregiverContact", fallback: "")
         safeCircleContacts = featureStore.load([SafeCircleContact].self, key: "feature.safeCircle", fallback: [])
@@ -342,6 +346,8 @@ final class AppState: ObservableObject {
         featureStore.save(pillDoseStatuses, key: "feature.pillDoseStatuses")
         featureStore.save(healthMetrics, key: "feature.healthMetrics")
         featureStore.save(preventiveChecks, key: "feature.preventiveChecks")
+        featureStore.save(appleWatchLinked, key: "feature.appleWatchLinked")
+        featureStore.save(lastAppleWatchSyncDate, key: "feature.lastAppleWatchSync")
         featureStore.save(diaryEntries, key: "feature.diaryEntries")
         featureStore.save(caregiverContact, key: "feature.caregiverContact")
         featureStore.save(safeCircleContacts, key: "feature.safeCircle")
@@ -587,9 +593,55 @@ final class AppState: ObservableObject {
         }
     }
 
-    func syncAppleWatch() {
+    /// Turns Apple Health reading on or off. Health permission itself can only be changed in iOS Settings.
+    func setAppleWatchLinked(_ on: Bool) async {
+        guard on else {
+            appleWatchLinked = false
+            appleWatchStatusMessage = "Stopped reading Apple Health. To remove access, open Settings, Health, Data Access."
+            persistFeatureState()
+            return
+        }
+        guard HealthKitManager.isAvailable else {
+            appleWatchStatusMessage = "Health data is not available on this device."
+            return
+        }
+        do {
+            try await healthKit.requestAccess()
+            appleWatchLinked = true
+            persistFeatureState()
+            await syncAppleWatch()
+        } catch {
+            appleWatchStatusMessage = "Could not get Health access: \(error.localizedDescription)"
+        }
+    }
+
+    /// Reads the latest Apple Health values (which include Apple Watch data) into the vitals log.
+    func syncAppleWatch() async {
+        guard HealthKitManager.isAvailable else {
+            appleWatchStatusMessage = "Health data is not available on this device."
+            return
+        }
+        let readings = await healthKit.latestReadings()
+        var added = 0
+        for r in readings {
+            let daily = r.type == .steps || r.type == .sleep
+            if daily {
+                // One entry per day, kept up to date as the total grows.
+                healthMetrics.removeAll { $0.type == r.type && Calendar.current.isDate($0.timestamp, inSameDayAs: r.date) }
+            } else if healthMetrics.contains(where: { $0.type == r.type && abs($0.timestamp.timeIntervalSince(r.date)) < 1 }) {
+                continue
+            }
+            healthMetrics.append(HealthMetricRecord(id: UUID(), type: r.type, value: r.value, unit: r.unit, timestamp: r.date))
+            added += 1
+        }
+        healthMetrics.sort { $0.timestamp > $1.timestamp }
         lastAppleWatchSyncDate = Date()
-        addUpdate(category: .adherence, title: "Apple Watch Synced", detail: "Successfully synchronized biometric measurements with Apple Watch HealthKit.")
+        appleWatchStatusMessage = readings.isEmpty
+            ? "No readings found. Check that your Apple Watch is paired and that Medhavn is allowed in Settings, Health, Data Access."
+            : "Updated \(readings.count) reading(s) from Apple Health."
+        if added > 0 {
+            addUpdate(category: .adherence, title: "Apple Health synced", detail: "\(added) new reading(s) added to your vitals.")
+        }
         persistFeatureState()
     }
 
@@ -1547,7 +1599,15 @@ final class AppState: ObservableObject {
             await notificationService.clearPillReminders()
             return
         }
-        let specs = medCabinetItems.map { item in
+        let specs = reminderSpecs()
+        let done = Set(pillDoseStatuses.filter { $0.status != .pending }.map(\.key))
+        let doses = PillboxReminderPlanner.plan(specs: specs, now: Date(), isDone: { done.contains($0) })
+        let count = await notificationService.schedulePillReminders(doses)
+        appLog("Scheduled \(count) pillbox reminders", level: .info, category: "Notifications")
+    }
+
+    func reminderSpecs() -> [ReminderSpec] {
+        medCabinetItems.map { item in
             ReminderSpec(
                 id: item.id,
                 name: item.name,
@@ -1562,10 +1622,6 @@ final class AppState: ObservableObject {
                 createdAt: item.createdAt
             )
         }
-        let done = Set(pillDoseStatuses.filter { $0.status != .pending }.map(\.key))
-        let doses = PillboxReminderPlanner.plan(specs: specs, now: Date(), isDone: { done.contains($0) })
-        let count = await notificationService.schedulePillReminders(doses)
-        appLog("Scheduled \(count) pillbox reminders", level: .info, category: "Notifications")
     }
 
     /// Asks for notification permission the first time someone adds a medicine, so they see why.

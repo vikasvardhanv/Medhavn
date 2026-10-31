@@ -41,6 +41,8 @@
 	<string>$(INFOPLIST_KEY_SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>
 	<string>$(INFOPLIST_KEY_SUPABASE_URL)</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Medhavn reads your heart rate, resting heart rate, heart rate variability, blood oxygen, steps and sleep from the Health app, including data from your Apple Watch, so you can see them next to your medicines. Medhavn never changes your Health data.</string>
 	<key>BACKEND_URL</key>
 	<string>$(INFOPLIST_KEY_BACKEND_URL)</string>
 	<key>UIApplicationSceneManifest</key>

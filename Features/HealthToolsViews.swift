@@ -9,9 +9,9 @@ struct MeasurementsListView: View {
     private var sections: [(String, [HealthMetricType])] { allSections.filter { appState.showsFertility || $0.0 != "REPRODUCTIVE HEALTH" } }
 
     private let allSections: [(String, [HealthMetricType])] = [
-        ("GENERAL", [.painLevel, .peakFlow, .spO2]),
+        ("GENERAL", [.painLevel, .peakFlow, .spO2, .steps, .sleep]),
         ("REPRODUCTIVE HEALTH", [.basalBodyTemp, .cervicalMucus, .ovulationTest, .sexualActivity, .spotting]),
-        ("VITALS", [.bloodPressure, .pulse, .temperature]),
+        ("VITALS", [.bloodPressure, .pulse, .restingPulse, .hrv, .temperature]),
         ("METABOLIC", [.glucose, .weight])
     ]
 

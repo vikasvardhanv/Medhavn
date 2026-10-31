@@ -33,6 +33,7 @@
 		6137DA024337C336BBCD49C4 /* MedicationLogicEngine in Frameworks */ = {isa = PBXBuildFile; productRef = C064349C4F5AB351B21923A3 /* MedicationLogicEngine */; };
 		64023FFEE9D0312E51656BDB /* BackendAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1EBC8C96DAAD4DCEBE2D81 /* BackendAPI.swift */; };
 		72B24B2670A4E10F9EA940A6 /* UpdatesFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544CC0FFFA8E3DC1C486780E /* UpdatesFeedView.swift */; };
+		74028C6D89F4B96BE2919F44 /* IntuioAssistantTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5D569A439C2C9005AA9987 /* IntuioAssistantTools.swift */; };
 		75A1DB9EE249A8F0ACF8F658 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F5561FBBC07C4CA3F809D0 /* LockScreenView.swift */; };
 		75E869C01EFD5802E89E0BD4 /* AddMedicationWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B475936041726FF9A1911D /* AddMedicationWizardView.swift */; };
 		7882A250724301F9602B0342 /* ProactiveInsightsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF163477C9418D88BCF20F4 /* ProactiveInsightsEngine.swift */; };
@@ -44,6 +45,7 @@
 		879A1C70F7EBE4AD9584D156 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 8B8DF9450FC5D5E0FF3CFDC7 /* Tokenizers */; };
 		894B719586A44221C7E1A0E1 /* ParentCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2AF060C6A7C43B939A6589D /* ParentCareView.swift */; };
 		8DD99CE155FB41BC27D00CC5 /* CloudMedSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0ACCE5E48E017BFE1FEF17D /* CloudMedSync.swift */; };
+		925DED58788D0B0158D7E3CA /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4D15F9271D4A93702AF644 /* HealthKitManager.swift */; };
 		97B81794DF219869254CF9D0 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266D27EFCF3F03CE338643FF /* MLXLLM */; };
 		9AEB8EB647FDB2C56D392A41 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED081489C467CF6C8EAFCB8 /* SettingsView.swift */; };
 		9D9BE8F23DF52F58FEA1F981 /* MedicationLogicEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 23F5EEB7BABA87BDBE1601E3 /* MedicationLogicEngine */; };
@@ -110,6 +112,7 @@
 		5A1EBC8C96DAAD4DCEBE2D81 /* BackendAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAPI.swift; sourceTree = "<group>"; };
 		5C7FD6B8129A4E47868893E2 /* ProactiveSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveSuggestion.swift; sourceTree = "<group>"; };
 		5E3D521FCCD73A797A3731D7 /* HealthToolsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthToolsViews.swift; sourceTree = "<group>"; };
+		5F5D569A439C2C9005AA9987 /* IntuioAssistantTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntuioAssistantTools.swift; sourceTree = "<group>"; };
 		619C845E3E2C019FC79C71D1 /* MedicationNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationNotificationService.swift; sourceTree = "<group>"; };
 		6F9C40314BB5412E9139FC26 /* MedhavnUnitTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MedhavnUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		74BD57B531322C6C456A81CD /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
@@ -117,6 +120,7 @@
 		7BFDF439D0820F3B5496C1AC /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		894CE0C0E65744A2F853EC2D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8EC7FB526A1F13C490D44730 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
+		8F4D15F9271D4A93702AF644 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		8FA097F59E659DAD8D710498 /* DashboardTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardTabView.swift; sourceTree = "<group>"; };
 		93F624BDAE1FF651DA3298FD /* SQLiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStore.swift; sourceTree = "<group>"; };
 		A6FC78D60920ED65F568483C /* AdaptiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLayout.swift; sourceTree = "<group>"; };
@@ -234,6 +238,8 @@
 				C0ACCE5E48E017BFE1FEF17D /* CloudMedSync.swift */,
 				F3CDDC4FDBFE4EAF20AA23BE /* DrugLookupService.swift */,
 				D834AEE3EF0B822653EED42A /* FeatureStateStore.swift */,
+				8F4D15F9271D4A93702AF644 /* HealthKitManager.swift */,
+				5F5D569A439C2C9005AA9987 /* IntuioAssistantTools.swift */,
 				EFAAF809D404410DA873F666 /* IntuioOnDeviceLLM.swift */,
 				25846CE8B069E0C0D80712A9 /* InviteLinkHandler.swift */,
 				619C845E3E2C019FC79C71D1 /* MedicationNotificationService.swift */,
@@ -421,8 +427,10 @@
 				FE215AACFAF24E769508CEE9 /* FertilityTrackerView.swift in Sources */,
 				3712122221CF6502F4BAC558 /* FirstLaunchSetupView.swift in Sources */,
 				EC6A212BDD4C2C8EA2A23F37 /* FloatingPillChatView.swift in Sources */,
+				925DED58788D0B0158D7E3CA /* HealthKitManager.swift in Sources */,
 				23C31F5B84EF260B32749522 /* HealthToolsViews.swift in Sources */,
 				55DEBF31FD9FCBDD7B82C571 /* InteractionsCheckerView.swift in Sources */,
+				74028C6D89F4B96BE2919F44 /* IntuioAssistantTools.swift in Sources */,
 				01CBC38B51896A63C780099A /* IntuioOnDeviceLLM.swift in Sources */,
 				B5C2711A467FD9402A9CDABA /* InviteLinkHandler.swift in Sources */,
 				85BF25DD8645EE3B465E6750 /* LinkConsentView.swift in Sources */,
@@ -471,6 +479,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Medhavn.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -517,6 +526,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Medhavn.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;

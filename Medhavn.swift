@@ -60,6 +60,7 @@ struct MedhavnApp: App {
                             await appState.scheduleCabinetReminders()
                         }
                         appState.applyPendingDoseActions()
+                        if appState.appleWatchLinked { Task { await appState.syncAppleWatch() } }
                     }
                 }
                 .onOpenURL { url in

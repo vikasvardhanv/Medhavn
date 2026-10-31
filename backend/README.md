@@ -78,6 +78,13 @@ npm run typecheck
 devrun npm run dev
 ```
 
+## Production
+
+- API: `https://api-medhavn.mashtov.com` (Cloudflare certificates cover one subdomain level only, so do not use `api.medhavn.mashtov.com`).
+- The iOS app reads the address from `BACKEND_URL` in `project.yml`.
+- Mail: Microsoft 365 SMTP (`smtp.office365.com`, port 587) with `info@mashtov.com`.
+- In Coolify, turn on "Is Literal" for `SMTP_PASS`. Without it, Coolify expands any `$` in the password.
+
 ## Rotate secrets
 
-The old `supabase/functions/send-email/index.ts` has an SMTP password in plain text. Change that password at the provider. Then delete the old function after the app uses this service.
+The old Deno function `send-email` stored an SMTP password in plain text. The function is deleted, but the password remains in git history. Change that password at the provider.

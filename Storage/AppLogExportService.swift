@@ -9,31 +9,7 @@ struct AppLogExportService {
     
     init(session: URLSession = .shared) {
         self.session = session
-        // Get Supabase URL from Info.plist
-        self.baseURL = Self.getSupabaseURL()
-    }
-    
-    private static func getSupabaseURL() -> URL? {
-        let env = ProcessInfo.processInfo.environment
-        
-        // Check environment variables
-        let urlStrings = [
-            env["SUPABASE_URL"],
-            env["SERVICE_SUPABASE_URL"]
-        ].compactMap { $0 }
-        
-        // Check Info.plist as fallback
-        let bundleUrl = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String
-        let allUrls = urlStrings + [bundleUrl].compactMap { $0 }
-        
-        for urlStr in allUrls {
-            let trimmed = urlStr.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty, let url = URL(string: trimmed) {
-                return url
-            }
-        }
-        
-        return nil
+        self.baseURL = BackendAPI()?.baseURL
     }
     
     /// Export logs to backend with proper sanitization
@@ -53,7 +29,7 @@ struct AppLogExportService {
         let sanitizedLogs = logs.map { sanitizeLogEntry($0) }
         
         // Prepare request
-        let url = baseURL.appending(path: "functions/v1/store-app-logs")
+        let url = baseURL.appending(path: "v1/logs")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -77,7 +53,7 @@ struct AppLogExportService {
                 LogExportErrorResponse.self,
                 from: data
             ) {
-                throw LogExportError.api(errorResponse.message)
+                throw LogExportError.api(errorResponse.error)
             }
             throw LogExportError.badResponse
         }
@@ -194,7 +170,7 @@ struct SanitizedLogEntry: Codable {
 }
 
 struct LogExportErrorResponse: Codable {
-    let message: String
+    let error: String
 }
 
 enum LogExportError: LocalizedError {

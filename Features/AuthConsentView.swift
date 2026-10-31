@@ -244,17 +244,17 @@ struct LoginView: View {
                             .padding(.horizontal)
                             
                             Button {
-                                if appState.verifySignupOTP(code: enteredOTP) {
-                                    Task {
+                                Task {
+                                    if await appState.verifySignupOTP(code: enteredOTP) {
                                         let success = await appState.signup(email: email, password: password, fullName: fullName)
                                         if success {
                                             showOTPVerification = false
                                         } else {
                                             otpError = appState.authErrorMessage ?? "Registration failed."
                                         }
+                                    } else {
+                                        otpError = "Incorrect or expired code. Please try again."
                                     }
-                                } else {
-                                    otpError = "Incorrect code. Please try again."
                                 }
                             } label: {
                                 Text("Verify & Create Account")

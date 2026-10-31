@@ -197,11 +197,13 @@ final class AppLogger: ObservableObject {
             return
         }
 
-        let uploadEntries = uploadQueue.map { entry in
+        // The backend accepts at most 200 entries per request; the rest go on the next pass.
+        let queueSnapshot = Array(uploadQueue.prefix(200))
+        let uploadEntries = queueSnapshot.map { entry in
             UploadLogEntry(
                 level: entry.level.rawValue,
                 category: entry.category,
-                message: sanitizeMessage(entry.message),
+                message: String(sanitizeMessage(entry.message).prefix(4000)),
                 timestamp: ISO8601DateFormatter().string(from: entry.timestamp),
                 app_version: Bundle.main.appVersion,
                 device_model: UIDevice.current.model,
@@ -209,17 +211,18 @@ final class AppLogger: ObservableObject {
             )
         }
 
-        let queueSnapshot = uploadQueue
-        uploadQueue.removeAll()
+        uploadQueue.removeFirst(queueSnapshot.count)
         persistUploadQueue()
 
         let payload = UploadPayload(logs: uploadEntries)
         let encoded = try JSONEncoder().encode(payload)
 
-        guard let baseURL = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String,
-              let url = URL(string: baseURL)?.appending(path: "functions/v1/store-app-logs") else {
+        guard let backend = BackendAPI() else {
+            uploadQueue = queueSnapshot + uploadQueue
+            persistUploadQueue()
             throw AppLoggerError.missingConfiguration
         }
+        let url = backend.baseURL.appending(path: "v1/logs")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

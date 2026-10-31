@@ -12,13 +12,45 @@ Stack: Node 22, TypeScript, Hono.
 | `POST /v1/otp/send` `{email}` | none, rate limited | Email a 6-digit signup code |
 | `POST /v1/otp/verify` `{email, code}` | none, rate limited | Check the code. Returns `{verified}` |
 | `POST /v1/email/safecircle-invite` `{name, email}` | user JWT | Invite a SafeCircle contact |
-| `POST /v1/email/referral` `{email, code?}` | user JWT | Send a referral email |
+| `GET /v1/referrals` | user JWT | The user's referral code, store link, and invite progress |
+| `POST /v1/referrals` `{email, relationship}` | user JWT | Record an invite and email it with the store link and code |
+| `POST /v1/referrals/claim` `{code?}` | user JWT | Link a new account to its inviter, by email or by code |
+| `GET /v1/connections` | user JWT | People I am connected to, including declined ones |
+| `POST /v1/connections` `{email, relationship}` | user JWT | Ask an existing user to connect. Sends again after a decline. |
+| `POST /v1/connections/:id/respond` `{accept}` | user JWT | Accept or decline. The sender gets an email. A decline can be undone. |
+| `DELETE /v1/connections/:id` | user JWT | Remove a connection and stop all sharing between the two |
+| `GET /v1/shares` | user JWT | What I share, and what is shared with me |
+| `POST /v1/shares` `{connectionId, direction, scopes}` | user JWT | Offer my data, or ask to see theirs |
+| `POST /v1/shares/:id/respond` `{accept, scopes?}` | user JWT | The other person accepts or declines. An owner may narrow the scopes. |
+| `PATCH /v1/shares/:id` `{scopes}` | owner | Change what is shared |
+| `DELETE /v1/shares/:id` | owner or viewer | Stop sharing. Takes effect at once. |
+| `GET /v1/shares/:id/adherence` | viewer | Taken and missed counts, no medicine names |
+| `GET /v1/shares/:id/medications` | viewer | Medicine list (needs the medications scope) |
 | `GET /v1/drugs/suggest?q=&limit=` | user JWT | Drug name suggestions from OpenFDA |
 | `POST /v1/logs` `{logs:[...]}` | user JWT | Store sanitized app logs |
 
 A user JWT is the Supabase access token of a signed-in user. The anon key is rejected.
 
 Clients never send HTML or a From address. Templates live in `src/templates.ts`.
+
+## Referrals and family links
+
+- Run `supabase/sql/008_referrals.sql` before deploying this version.
+- Each user gets an 8-character code, stored in `user_profiles.referral_code`.
+- Every invite is a row in `referrals` (inviter, invitee email, relationship, status).
+- When the invitee signs up, the app calls `/v1/referrals/claim`. The backend matches the invite by email, or by the code typed at sign-up. Status becomes `signed_up`.
+- The claim also adds a `connections` row with status `pending`. A connection gives no access to health data.
+
+## Sharing health data
+
+- Run `supabase/sql/009_sharing.sql` after 008.
+- A relationship label (parent, child, friend) never grants access. Access comes only from a share.
+- A share has an owner, a viewer, and scopes: `alerts`, `adherence`, `medications`. The owner can choose any scope for anyone they are connected to.
+- The person who did not propose the share must accept. The data owner therefore always consents.
+- A declined request emails the sender. The decliner can accept later, and the sender can send again.
+- Every read of another person's data goes through `routes/shares.ts`, which checks for an active share first. App users cannot read other users' rows directly, because of row-level security.
+- Grants, accepts, declines and revokes are recorded in `share_audit`. It holds no health data.
+- Alerts: SafeCircle contacts and viewers with the `alerts` scope get a neutral email. Medicine names appear only for viewers with the `medications` scope.
 
 ## Missed-dose alerts
 
@@ -47,6 +79,7 @@ The job reads `safe_circle_contacts`. The iOS app must write contacts to that ta
 | `SMTP_USER` | if no Resend key | |
 | `SMTP_PASS` | if no Resend key | |
 | `MAIL_FROM` | yes | Must be on a domain verified with Resend, for example `info@mashtov.com` |
+| `APP_STORE_URL` | no | Store link put in referral emails. Defaults to the Medhavn App Store page. |
 | `OPENFDA_API_KEY` | no | Raises the OpenFDA rate limit |
 | `MISSED_DOSE_JOB_ENABLED` | no | Default `true` |
 | `MISSED_DOSE_JOB_INTERVAL_MIN` | no | Default 10 |

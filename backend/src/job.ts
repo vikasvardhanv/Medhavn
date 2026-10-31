@@ -1,5 +1,6 @@
 import { db } from "./db.js";
 import { sendMail } from "./mailer.js";
+import { people } from "./people.js";
 import { findMissedDoses, type CabinetItem, type MissedDose } from "./missedDoses.js";
 import { missedDoseAlertEmail } from "./templates.js";
 
@@ -67,13 +68,31 @@ export async function runMissedDoseJob(now = new Date()): Promise<{ candidates: 
       .select("name,contact_info")
       .eq("user_id", userId);
     if (kErr) throw kErr;
-    const emails = (contacts ?? []).map((c) => c.contact_info.trim()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const isEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+    // Recipients: SafeCircle contacts get a neutral message. People the user shares with get alerts
+    // only if they hold the "alerts" scope, and see medicine names only with "medications".
+    const recipients = new Map<string, boolean>(); // email -> may see medicine names
+    for (const k of contacts ?? []) if (isEmail(k.contact_info.trim())) recipients.set(k.contact_info.trim(), false);
+
+    const { data: viewers, error: vErr } = await db
+      .from("data_shares")
+      .select("viewer_id,scopes")
+      .eq("owner_id", userId)
+      .eq("status", "active")
+      .contains("scopes", ["alerts"]);
+    if (vErr) throw vErr;
+    const viewerProfiles = await people((viewers ?? []).map((v) => v.viewer_id));
+    for (const v of viewers ?? []) {
+      const email = viewerProfiles.get(v.viewer_id)?.email;
+      if (email) recipients.set(email, recipients.get(email) === true || (v.scopes as string[]).includes("medications"));
+    }
+
+    const patient = names.get(userId) ?? "A Medhavn user";
     let sent = 0;
-    const mail = missedDoseAlertEmail(names.get(userId) ?? "A Medhavn user", doses);
-    for (const to of emails) {
+    for (const [to, canSeeNames] of recipients) {
       try {
-        await sendMail(to, mail);
+        await sendMail(to, missedDoseAlertEmail(patient, doses.length, canSeeNames ? doses : undefined));
         sent++;
       } catch (err) {
         console.error("missed-dose email failed", err instanceof Error ? err.message : err);
@@ -82,7 +101,7 @@ export async function runMissedDoseJob(now = new Date()): Promise<{ candidates: 
     if (sent > 0) {
       alerted += doses.length;
     } else {
-      // Nobody was reached (no contacts, or SMTP failed). Release the claim so a later pass can retry
+      // Nobody was reached (no recipients, or SMTP failed). Release the claim so a later pass can retry
       // while the dose is still inside the lookback window.
       await db.from("missed_dose_alerts").delete().eq("user_id", userId).in("key", doses.map((d) => d.key));
     }

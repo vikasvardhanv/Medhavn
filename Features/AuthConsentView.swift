@@ -21,6 +21,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var fullName = ""
+    @State private var referralCodeInput = ""
     @State private var confirmPassword = ""
     @State private var showForgotPassword = false
     @State private var showOTPVerification = false
@@ -85,6 +86,11 @@ struct LoginView: View {
                                         fieldRow {
                                             TextField("Full Name", text: $fullName)
                                                 .textInputAutocapitalization(.words)
+                                        }
+                                        fieldRow {
+                                            TextField("Referral code (optional)", text: $referralCodeInput)
+                                                .textInputAutocapitalization(.characters)
+                                                .autocorrectionDisabled()
                                         }
                                     }
 
@@ -246,6 +252,7 @@ struct LoginView: View {
                             Button {
                                 Task {
                                     if await appState.verifySignupOTP(code: enteredOTP) {
+                                        appState.pendingReferralCode = referralCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
                                         let success = await appState.signup(email: email, password: password, fullName: fullName)
                                         if success {
                                             showOTPVerification = false

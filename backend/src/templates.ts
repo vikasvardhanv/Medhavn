@@ -35,30 +35,44 @@ export function safeCircleInviteEmail(name: string) {
   };
 }
 
-export function referralEmail(code?: string) {
-  const codeLine = code
-    ? `<p>Use referral code <strong>${escapeHtml(code)}</strong> when you sign up to get started!</p>`
+export function referralEmail(opts: { inviterName: string; code: string; appStoreUrl: string; family: boolean }) {
+  const who = escapeHtml(opts.inviterName);
+  const intro = opts.family
+    ? `${who} invited you to Medhavn so you can stay connected and look out for each other's health.`
+    : `${who} invited you to join Medhavn to track medications and manage your health.`;
+  const button = opts.appStoreUrl
+    ? `<p><a href="${escapeHtml(opts.appStoreUrl)}" style="display:inline-block;background:#007AFF;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Download Medhavn</a></p>`
     : "";
   return {
-    subject: "You're invited to Medhavn!",
+    subject: `${opts.inviterName} invited you to Medhavn`,
     html: wrap(`
-      <h2>Get Started on Medhavn</h2>
-      <p>Your friend has invited you to join Medhavn to track medications and manage your health.</p>
-      ${codeLine}
-      <p>Download Medhavn now and take control of your health journey.</p>`),
+      <h2>You're invited to Medhavn</h2>
+      <p>${intro}</p>
+      ${button}
+      <p>Sign up with this email address and we will connect you automatically. Or enter this referral code during sign-up:</p>
+      <div style="font-size: 22px; font-weight: bold; letter-spacing: 3px; padding: 12px; background-color: #f2f2f7; border-radius: 8px; display: inline-block;">${escapeHtml(opts.code)}</div>`),
   };
 }
 
-export function missedDoseAlertEmail(patientName: string, doses: { itemName: string; block: string; date: string }[]) {
-  const rows = doses
-    .map((d) => `<li>${escapeHtml(d.itemName)} (${escapeHtml(d.block)}, ${escapeHtml(d.date)})</li>`)
-    .join("");
+/** Short account notice. Names only, never health details. */
+export function noticeEmail(heading: string, lines: string[]) {
+  return {
+    subject: heading,
+    html: wrap(`<h2>${escapeHtml(heading)}</h2>${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}<p>Open Medhavn to respond.</p>`),
+  };
+}
+
+/** `doses` is only passed for recipients who were granted the medications scope. Everyone else gets a neutral message. */
+export function missedDoseAlertEmail(patientName: string, count: number, doses?: { itemName: string; block: string; date: string }[]) {
+  const detail = doses
+    ? `<ul>${doses.map((d) => `<li>${escapeHtml(d.itemName)} (${escapeHtml(d.block)}, ${escapeHtml(d.date)})</li>`).join("")}</ul>`
+    : "";
   return {
     subject: `Missed dose alert for ${patientName}`,
     html: wrap(`
       <h2>Missed dose alert</h2>
-      <p>${escapeHtml(patientName)} has not marked these doses as taken:</p>
-      <ul>${rows}</ul>
-      <p>Please check in with them. You received this because you are in their Medhavn SafeCircle.</p>`),
+      <p>${escapeHtml(patientName)} missed ${count === 1 ? "a scheduled dose" : `${count} scheduled doses`}. Please check in with them.</p>
+      ${detail}
+      <p>You received this because ${escapeHtml(patientName)} chose to share missed-dose alerts with you.</p>`),
   };
 }

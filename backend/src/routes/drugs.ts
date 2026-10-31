@@ -5,14 +5,15 @@ import { config } from "../config.js";
 export const drugs = new Hono();
 
 drugs.get("/suggest", async (c) => {
-  const q = (c.req.query("q") ?? "").trim();
+  // Letters, digits, space and hyphen only: the value is embedded in an OpenFDA search expression.
+  const q = (c.req.query("q") ?? "").replace(/[^\p{L}\p{N} -]/gu, "").trim();
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 12) || 12, 1), 20);
   if (q.length < 2) return c.json({ suggestions: [] });
 
   const url = new URL("https://api.fda.gov/drug/label.json");
   url.searchParams.set(
     "search",
-    `openfda.brand_name:${q}*+openfda.generic_name:${q}*+openfda.substance_name:${q}*`,
+    `openfda.brand_name:${q}* OR openfda.generic_name:${q}* OR openfda.substance_name:${q}*`,
   );
   url.searchParams.set("limit", String(limit));
   if (config.openFdaKey) url.searchParams.set("api_key", config.openFdaKey);

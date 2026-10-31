@@ -5,6 +5,7 @@ const transporter = nodemailer.createTransport({
   host: config.smtp.host,
   port: config.smtp.port,
   secure: config.smtp.port === 465,
+  requireTLS: config.smtp.port !== 465, // 587 and similar: refuse to send credentials without STARTTLS
   auth: { user: config.smtp.user, pass: config.smtp.pass },
   pool: true,
   connectionTimeout: 10_000,

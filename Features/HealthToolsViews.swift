@@ -6,10 +6,12 @@ struct MeasurementsListView: View {
     @State private var showLog = false
     @State private var logType: HealthMetricType = .bloodPressure
 
-    private let sections: [(String, [HealthMetricType])] = [
-        ("GENERAL", [.painLevel, .peakFlow, .spO2]),
+    private var sections: [(String, [HealthMetricType])] { allSections.filter { appState.showsFertility || $0.0 != "REPRODUCTIVE HEALTH" } }
+
+    private let allSections: [(String, [HealthMetricType])] = [
+        ("GENERAL", [.painLevel, .peakFlow, .spO2, .steps, .sleep]),
         ("REPRODUCTIVE HEALTH", [.basalBodyTemp, .cervicalMucus, .ovulationTest, .sexualActivity, .spotting]),
-        ("VITALS", [.bloodPressure, .pulse, .temperature]),
+        ("VITALS", [.bloodPressure, .pulse, .restingPulse, .hrv, .temperature]),
         ("METABOLIC", [.glucose, .weight])
     ]
 

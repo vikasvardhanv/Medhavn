@@ -53,6 +53,11 @@ targets:
         product: HuggingFace
       - package: swift-transformers
         product: Tokenizers
+    entitlements:
+      path: Medhavn.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.medhavn.app

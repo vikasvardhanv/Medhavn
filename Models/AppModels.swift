@@ -188,6 +188,11 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
     // Metabolic
     case glucose         = "Glucose"
     case weight          = "Weight"
+    // From Apple Watch / Health
+    case restingPulse    = "Resting Heart Rate"
+    case hrv             = "Heart Rate Variability"
+    case steps           = "Steps"
+    case sleep           = "Sleep"
 
     var id: String { rawValue }
 
@@ -195,9 +200,9 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
 
     var section: Section {
         switch self {
-        case .painLevel, .peakFlow, .spO2: return .general
+        case .painLevel, .peakFlow, .spO2, .steps, .sleep: return .general
         case .basalBodyTemp, .cervicalMucus, .ovulationTest, .sexualActivity, .spotting: return .reproductive
-        case .bloodPressure, .pulse, .temperature: return .vitals
+        case .bloodPressure, .pulse, .temperature, .restingPulse, .hrv: return .vitals
         case .glucose, .weight: return .metabolic
         }
     }
@@ -217,6 +222,10 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
         case .temperature: return "°F"
         case .glucose: return "mg/dL"
         case .weight: return "lbs"
+        case .restingPulse: return "bpm"
+        case .hrv: return "ms"
+        case .steps: return "steps"
+        case .sleep: return "hr"
         }
     }
 
@@ -235,6 +244,10 @@ enum HealthMetricType: String, Codable, CaseIterable, Identifiable {
         case .temperature: return "thermometer.sun.fill"
         case .glucose: return "drop.circle"
         case .weight: return "scalemass.fill"
+        case .restingPulse: return "heart.text.square"
+        case .hrv: return "waveform.path.ecg.rectangle"
+        case .steps: return "figure.walk"
+        case .sleep: return "bed.double.fill"
         }
     }
 }
@@ -597,6 +610,22 @@ struct FertilityLabRecord: Identifiable, Codable {
 /// Determines which view occupies the third tab bar slot.
 /// When `.period` or `.fertility` is chosen the Insights dashboard
 /// moves into the Hub; when `.none` (the default) Insights stays in the tab bar.
+enum Sex: String, Codable, CaseIterable, Identifiable {
+    case female, male, other
+    case preferNot = "prefer_not"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .female: return "Female"
+        case .male: return "Male"
+        case .other: return "Other"
+        case .preferNot: return "Prefer not to say"
+        }
+    }
+}
+
 enum TrackerPreference: String, Codable, CaseIterable {
     case none       // Default — show Insights in tab bar
     case period     // Show Period Tracker in tab bar
@@ -632,6 +661,7 @@ struct AppSettings: Codable {
     var biometricLockEnabled: Bool
     var trackerPreference: TrackerPreference
     var trackerSelectionCompleted: Bool
+    var sex: String? = nil
 
     static let `default` = AppSettings(
         firstUseDate: Date(),

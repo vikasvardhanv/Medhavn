@@ -30,7 +30,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>3</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
@@ -41,6 +41,8 @@
 	<string>$(INFOPLIST_KEY_SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>
 	<string>$(INFOPLIST_KEY_SUPABASE_URL)</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Medhavn only reads from the Health app and does not write to it. iOS requires this description for apps that use Health data.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Medhavn reads your heart rate, resting heart rate, heart rate variability, blood oxygen, steps and sleep from the Health app, including data from your Apple Watch, so you can see them next to your medicines. Medhavn never changes your Health data.</string>
 	<key>BACKEND_URL</key>

@@ -134,7 +134,7 @@ private struct DownloadConsentPromptView: View {
 private struct DownloadProgressView: View {
     @EnvironmentObject private var appState: AppState
 
-    @State private var progress: Double = 0.0
+    private var progress: Double { appState.isModelWarmedUp ? 1 : appState.modelDownloadProgress }
     @State private var elapsed: Double  = 0.0
     @State private var ticker: Timer?
     @State private var showSkip   = false
@@ -142,8 +142,6 @@ private struct DownloadProgressView: View {
     @State private var doneScale: Double = 0.0
 
     private let tickInterval: Double = 0.5
-    private let targetFraction: Double = 0.92
-    private let targetSeconds:  Double = 90
 
     var body: some View {
         VStack(spacing: 0) {
@@ -243,7 +241,6 @@ private struct DownloadProgressView: View {
         }
         .onChange(of: appState.isModelWarmedUp) { _, warmedUp in
             if warmedUp {
-                withAnimation(.linear(duration: 0.3)) { progress = 1.0 }
                 doneScale = 1.0
                 ticker?.invalidate()
                 Task {
@@ -262,9 +259,9 @@ private struct DownloadProgressView: View {
             Text("AI assistant is ready!")
                 .foregroundStyle(.white)
         } else if appState.modelPrewarmFailed {
-            Text("Download failed. Please check your internet connection,\nthen tap Retry.")
+            Text("Download failed: \(appState.modelErrorText ?? "please check your internet connection")\nTap Retry to continue where it stopped.")
         } else {
-            Text("Keep the app open to complete setup.\nYou can return to it any time.")
+            Text("\(String(format: "%.1f", progress * (IntuioModelCatalog.current == IntuioModelCatalog.standard ? 1.8 : 0.7))) of \(IntuioModelCatalog.downloadSizeText) downloaded.\nKeep the app open and on Wi-Fi until it finishes.")
         }
     }
 
@@ -302,18 +299,13 @@ private struct DownloadProgressView: View {
     }
 
     private func startTicker() {
-        let increment = targetFraction / (targetSeconds / tickInterval)
         ticker = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { _ in
             elapsed += tickInterval
-            if progress < targetFraction {
-                progress = min(targetFraction, progress + increment)
-            }
             if elapsed >= 60 { showSkip = true }
         }
     }
 
     private func retryDownload() {
-        progress = 0
         elapsed  = 0
         showSkip = false
         startTicker()

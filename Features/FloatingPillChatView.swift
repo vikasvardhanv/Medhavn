@@ -156,12 +156,19 @@ private struct IntuioChatSheetView: View {
                 .task {
                     await loadModel()
                 }
+                .onChange(of: appState.modelDownloadProgress) { _, value in
+                    // Whoever started the download, the progress is shared.
+                    if isLoadingModel { downloadProgress = value }
+                }
                 .sheet(isPresented: $showDownloadConsent) {
                     IntuioChatDownloadConsentSheetView(
                         isPresented: $showDownloadConsent,
                         onConsent: {
                             appState.startModelDownloadWithConsent()
-                            Task { await loadModel() }
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(300))
+                                await loadModel()
+                            }
                         },
                         onSkip: {
                             modelReady = false
@@ -219,12 +226,12 @@ private struct IntuioChatSheetView: View {
         modelReady = false
         downloadProgress = 0
 
+        // Joins the download AppState already started (the loader never runs two at once).
         let loaded = await chatEngine.warmupWithProgress { fraction in
             Task { @MainActor in
                 if fraction.isFinite {
                     self.downloadProgress = min(max(fraction, 0.0), 1.0)
-                } else {
-                    self.downloadProgress = 0.0
+                    self.appState.modelDownloadProgress = max(self.appState.modelDownloadProgress, self.downloadProgress)
                 }
             }
         }
@@ -238,7 +245,7 @@ private struct IntuioChatSheetView: View {
         if modelLoadFailed {
             messages.append(IntuioChatMessage(
                 role: .assistant,
-                text: "Model download timed out — using on-device fallback. Responses are still safe and helpful."
+                text: "The AI model could not be loaded\(appState.modelErrorText.map { ": \($0)" } ?? ""). I can still answer questions about your doses, stock and schedule."
             ))
         }
     }

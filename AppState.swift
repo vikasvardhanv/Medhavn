@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import CryptoKit
 import LocalAuthentication
 import MedicationLogicEngine
@@ -76,6 +77,9 @@ final class AppState: ObservableObject {
     @Published var isModelWarmedUp: Bool = false
     @Published var isModelPrewarming: Bool = false
     @Published var modelPrewarmFailed: Bool = false
+    /// Real download progress from the model loader, 0 to 1.
+    @Published var modelDownloadProgress: Double = 0
+    @Published var modelErrorText: String?
     /// `true` once the model has been downloaded and cached at least once.
     /// Persisted in UserDefaults so the setup screen never shows again after first run.
     @Published var isFirstLaunchSetupDone: Bool = UserDefaults.standard.bool(forKey: "intuio.modelCached")
@@ -196,17 +200,7 @@ final class AppState: ObservableObject {
             // before this code path is reached via startModelDownloadWithConsent().
             if isDownloadConsentGiven {
                 let taskPriority: TaskPriority = isFirstLaunchSetupDone ? .background : .userInitiated
-                Task.detached(priority: taskPriority) { [weak self] in
-                    guard let self else { return }
-                    await MainActor.run { self.isModelPrewarming = true }
-                    let ok = await self.sharedChatEngine.warmup()
-                    await MainActor.run {
-                        self.isModelPrewarming = false
-                        self.isModelWarmedUp = ok
-                        self.modelPrewarmFailed = !ok
-                        if ok { self.completeFirstLaunchSetup() }
-                    }
-                }
+                startModelWarmup(priority: taskPriority)
             }
         } catch {
             appLog("Bootstrap failed: \(error)", level: .error, category: "AppState")
@@ -239,15 +233,37 @@ final class AppState: ObservableObject {
         isDownloadConsentGiven = true
         isModelWarmedUp = false
         modelPrewarmFailed = false
-        Task.detached(priority: .userInitiated) { [weak self] in
+        startModelWarmup(priority: .userInitiated)
+    }
+
+    /// The one place the model download starts. Joining a download already running is a no-op, so the
+    /// consent button, the chat screen and launch can never start two downloads of the same files.
+    private func startModelWarmup(priority: TaskPriority) {
+        guard !isModelPrewarming else { return }
+        isModelPrewarming = true
+        modelPrewarmFailed = false
+        modelErrorText = nil
+        modelDownloadProgress = 0
+        // A sleeping phone pauses the download, so keep the screen on while it runs.
+        UIApplication.shared.isIdleTimerDisabled = true
+        Task.detached(priority: priority) { [weak self] in
             guard let self else { return }
-            await MainActor.run { self.isModelPrewarming = true }
-            let ok = await self.sharedChatEngine.warmup()
+            let error = await self.sharedChatEngine.warmupReportingError { fraction in
+                Task { @MainActor [weak self] in
+                    guard let self, fraction.isFinite else { return }
+                    self.modelDownloadProgress = max(self.modelDownloadProgress, min(max(fraction, 0), 1))
+                }
+            }
             await MainActor.run {
+                UIApplication.shared.isIdleTimerDisabled = false
                 self.isModelPrewarming = false
-                self.isModelWarmedUp = ok
-                self.modelPrewarmFailed = !ok
-                if ok { self.completeFirstLaunchSetup() }
+                self.isModelWarmedUp = error == nil
+                self.modelPrewarmFailed = error != nil
+                self.modelErrorText = error
+                if error == nil {
+                    self.modelDownloadProgress = 1
+                    self.completeFirstLaunchSetup()
+                }
             }
         }
     }
@@ -257,17 +273,7 @@ final class AppState: ObservableObject {
         guard !isModelPrewarming, isDownloadConsentGiven else { return }
         isModelWarmedUp = false
         modelPrewarmFailed = false
-        Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self else { return }
-            await MainActor.run { self.isModelPrewarming = true }
-            let ok = await self.sharedChatEngine.warmup()
-            await MainActor.run {
-                self.isModelPrewarming = false
-                self.isModelWarmedUp = ok
-                self.modelPrewarmFailed = !ok
-                if ok { self.completeFirstLaunchSetup() }
-            }
-        }
+        startModelWarmup(priority: .userInitiated)
     }
 
     func saveSettings(hasPaid: Bool? = nil) {
@@ -304,6 +310,8 @@ final class AppState: ObservableObject {
     private func loadFeatureState() {
         let defaultProfile = UserProfile(id: UUID(), name: "You", avatarSymbol: "person.fill")
         profiles = featureStore.load([UserProfile].self, key: "feature.profiles", fallback: [defaultProfile])
+        // An empty saved list (left by "delete account") would make Save to Cabinet do nothing.
+        if profiles.isEmpty { profiles = [defaultProfile] }
 
         selectedProfileID = featureStore.load(UUID?.self, key: "feature.selectedProfileID", fallback: profiles.first?.id)
         if selectedProfileID == nil {
@@ -1634,6 +1642,16 @@ final class AppState: ObservableObject {
 
     func openHomeFromNotification() { openHomeTick += 1 }
 
+    /// The profile new medicines attach to. Creates one if none exists, so saving can never silently fail.
+    func ensureProfileID() -> UUID {
+        if let id = selectedProfile?.id { return id }
+        let fresh = UserProfile(id: UUID(), name: "You", avatarSymbol: "person.fill")
+        profiles = [fresh]
+        selectedProfileID = fresh.id
+        persistFeatureState()
+        return fresh.id
+    }
+
     // MARK: - Sex and personalised sections
 
     /// Female-specific tools (fertility, period) are hidden for men. Everyone else keeps them.
@@ -1749,8 +1767,9 @@ final class AppState: ObservableObject {
 
     func deleteAccountAndWipeData() {
         logout()
-        profiles = []
-        selectedProfileID = nil
+        let fresh = UserProfile(id: UUID(), name: "You", avatarSymbol: "person.fill")
+        profiles = [fresh]
+        selectedProfileID = fresh.id
         medCabinetItems = []
         updatesFeed = []
         pillDoseStatuses = []

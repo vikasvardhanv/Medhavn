@@ -32,6 +32,7 @@ struct AddMedicationWizardView: View {
     @State private var rxNumber = ""
     @State private var refillReminder = false
     @State private var warnings: [String] = []
+    @State private var saved = false
     // Scan state
     @State private var showScanOptions = false
     @State private var showScanner = false
@@ -119,7 +120,9 @@ struct AddMedicationWizardView: View {
                     }
                     
                     Button {
-                        if step < 4 {
+                        if saved {
+                            dismiss()
+                        } else if step < 4 {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 step += 1
                             }
@@ -131,8 +134,8 @@ struct AddMedicationWizardView: View {
                         }
                     } label: {
                         HStack {
-                            Text(step < 4 ? "Continue" : "Save to Cabinet")
-                            Image(systemName: step < 4 ? "chevron.right" : "checkmark")
+                            Text(saved ? "Saved. Done" : (step < 4 ? "Continue" : "Save to Cabinet"))
+                            Image(systemName: step < 4 && !saved ? "chevron.right" : "checkmark")
                         }
                         .font(.headline.weight(.bold))
                         .frame(maxWidth: .infinity)
@@ -624,7 +627,7 @@ struct AddMedicationWizardView: View {
     }
 
     private func saveMedication() {
-        guard let profileID = appState.selectedProfile?.id else { return }
+        let profileID = appState.ensureProfileID()
         let tagList = tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
         let item = MedCabinetItem(
             profileID: profileID,
@@ -645,6 +648,9 @@ struct AddMedicationWizardView: View {
             refill: PrescriptionRefill(rxNumber: rxNumber, pillsLeft: Int(remaining) ?? 30, refillReminderEnabled: refillReminder)
         )
         warnings = appState.addMedCabinetItem(item)
+        // With interaction warnings the sheet stays open so they can be read. The pill is already saved,
+        // so the button becomes Done and cannot save a second copy.
+        saved = true
         if warnings.isEmpty { dismiss() }
     }
 

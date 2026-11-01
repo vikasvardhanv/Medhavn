@@ -22,9 +22,10 @@ enum IntuioModelCatalog {
     static let standard = "mlx-community/Llama-3.2-3B-Instruct-4bit"   // about 1.8 GB
     static let compact = "mlx-community/Llama-3.2-1B-Instruct-4bit"    // about 0.7 GB
 
-    /// 6 GB iPhones report about 5.7 GB, 4 GB models about 3.7 GB.
+    /// 8 GB iPhones report about 7.5 GB, 6 GB models about 5.7 GB. The 3B model needs about 2.2 GB of working
+    /// memory, which is too close to the limit on 6 GB phones, so they get the 1B model.
     static var current: String {
-        ProcessInfo.processInfo.physicalMemory >= 5_000_000_000 ? standard : compact
+        ProcessInfo.processInfo.physicalMemory >= 6_500_000_000 ? standard : compact
     }
 
     static var downloadSizeText: String { current == standard ? "1.8 GB" : "0.7 GB" }
@@ -159,6 +160,23 @@ struct IntuioAssistantChatEngine: IntuioAssistantChatting {
 
     func warmup() async -> Bool {
         await warmupWithProgress { _ in }
+    }
+
+    /// Like `warmupWithProgress`, but returns a readable reason when it fails (nil on success).
+    func warmupReportingError(onProgress: @escaping @Sendable (Double) -> Void) async -> String? {
+        #if canImport(MLX) && canImport(MLXLLM) && canImport(MLXLMCommon) && !targetEnvironment(simulator)
+        do {
+            try await IntuioMLXRuntime.shared.warmup(modelID: modelName, onProgress: onProgress)
+            return nil
+        } catch IntuioModelError.notConsented {
+            return "Download was not approved. Tap Download Now to approve it."
+        } catch {
+            return error.localizedDescription
+        }
+        #else
+        onProgress(1.0)
+        return "The AI model needs a real iPhone. The simulator cannot run it."
+        #endif
     }
 
     /// Warm up the model and stream fractional download progress (0.0–1.0) via `onProgress`.
@@ -312,6 +330,8 @@ actor IntuioMLXRuntime {
 
     private var cachedModelID: String?
     private var container: ModelContainer?
+    /// A load already running. A second caller waits for it instead of starting another download.
+    private var inFlight: (id: String, task: Task<ModelContainer, Error>)?
 
     private init() {
         // Allow the Metal GPU cache to hold model weights comfortably.
@@ -377,24 +397,27 @@ actor IntuioMLXRuntime {
             return container
         }
 
+        if let inFlight, inFlight.id == modelID {
+            return try await inFlight.task.value
+        }
+
         let configuration = LLMModelFactory.shared.configuration(id: modelID)
-        let loaded = try await LLMModelFactory.shared.loadContainer(
-            from: #hubDownloader(HubClient.default),
-            using: #huggingFaceTokenizerLoader(),
-            configuration: configuration,
-            progressHandler: { progress in
-                // Some runtime backends can briefly emit non-finite progress values.
-                // Clamp aggressively so UI consumers (ProgressView/CoreGraphics) never receive NaN/inf.
-                let rawFraction = progress.fractionCompleted
-                let fraction: Double
-                if rawFraction.isFinite {
-                    fraction = min(max(rawFraction, 0.0), 1.0)
-                } else {
-                    fraction = 0.0
+        let task = Task { () throws -> ModelContainer in
+            try await LLMModelFactory.shared.loadContainer(
+                from: #hubDownloader(HubClient.default),
+                using: #huggingFaceTokenizerLoader(),
+                configuration: configuration,
+                progressHandler: { progress in
+                    // Some runtime backends can briefly emit non-finite progress values.
+                    // Clamp aggressively so UI consumers (ProgressView/CoreGraphics) never receive NaN/inf.
+                    let rawFraction = progress.fractionCompleted
+                    onProgress(rawFraction.isFinite ? min(max(rawFraction, 0.0), 1.0) : 0.0)
                 }
-                onProgress(fraction)
-            }
-        )
+            )
+        }
+        inFlight = (modelID, task)
+        defer { inFlight = nil }
+        let loaded = try await task.value
         cachedModelID = modelID
         container = loaded
         return loaded

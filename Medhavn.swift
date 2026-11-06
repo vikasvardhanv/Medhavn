@@ -101,10 +101,6 @@ struct RootView: View, AppStateProvider {
                 TrackerSelectionView()
             } else {
                 tabShell
-                .sheet(isPresented: $appState.showUpgradeSheet) {
-                    UpgradeSheetView()
-                        .environmentObject(appState)
-                }
                 .sheet(isPresented: Binding(
                     get: { appState.pendingInvitationID != nil },
                     set: { val in if !val { appState.pendingInvitationID = nil } }

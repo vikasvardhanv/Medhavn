@@ -13,8 +13,6 @@ final class AppState: ObservableObject {
     @Published var latestOutput: EngineOutput?
     @Published var todayLog: [DoseLogRecord] = []
     @Published var userCloudConsent: Bool = false
-    @Published var showUpgradeSheet = false
-    @Published var trialDaysRemaining: Int = 60
     @Published var disclaimerAccepted = false
     @Published var isLoggedIn = false
     @Published var consentChecklistCompleted = false
@@ -164,8 +162,6 @@ final class AppState: ObservableObject {
             authToken = settings.authToken
             authRefreshToken = settings.authRefreshToken
             remindersEnabled = settings.remindersEnabled
-            trialDaysRemaining = TrialManager.daysRemaining(from: settings.firstUseDate)
-            showUpgradeSheet = trialDaysRemaining <= 0 && !settings.hasPaid
             plans = try store.fetchPlans()
             selectedPlanID = plans.first?.id
             if let selectedPlan {
@@ -300,8 +296,6 @@ final class AppState: ObservableObject {
             settings.biometricLockEnabled = biometricLockEnabled
             // pinHash persisted separately via saveSettings(pinHash:pinEnabled:)
             try store.saveSettings(settings)
-            trialDaysRemaining = TrialManager.daysRemaining(from: settings.firstUseDate)
-            showUpgradeSheet = trialDaysRemaining <= 0 && !settings.hasPaid
         } catch {
             appLog("Save settings failed: \(error)", level: .error, category: "AppState")
         }
@@ -1765,7 +1759,15 @@ final class AppState: ObservableObject {
         proactiveSuggestions = []
     }
 
-    func deleteAccountAndWipeData() {
+    /// Deletes the server account first, then wipes local data. Returns false (and keeps the
+    /// local data) when the server delete fails, so the user can retry.
+    func deleteAccountAndWipeData() async -> Bool {
+        if let token = emailSessionToken, let api = BackendAPI() {
+            do { try await api.deleteAccount(token: token) } catch {
+                appLog("Account delete failed: \(error)", level: .error, category: "Account")
+                return false
+            }
+        }
         logout()
         let fresh = UserProfile(id: UUID(), name: "You", avatarSymbol: "person.fill")
         profiles = [fresh]
@@ -1787,6 +1789,7 @@ final class AppState: ObservableObject {
         knownInteractions = []
         userHealthPoints = 0
         persistFeatureState()
+        return true
     }
 
     // MARK: - Remote Dependent Invitations

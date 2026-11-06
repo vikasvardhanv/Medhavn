@@ -4,6 +4,8 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var logger = AppLogger.shared
     @State private var showPINSetup = false
+    @State private var showDeleteConfirm = false
+    @State private var deleteFailed = false
 
     var body: some View {
         ScrollView {
@@ -14,8 +16,6 @@ struct SettingsView: View {
                     .staggeredEntrance(delay: 0.03)
                 accountSection
                     .staggeredEntrance(delay: 0.06)
-                trialSection
-                    .staggeredEntrance(delay: 0.12)
                 privacySection
                     .staggeredEntrance(delay: 0.18)
                 remindersSection
@@ -142,22 +142,6 @@ struct SettingsView: View {
         .glassCard(cornerRadius: 24)
     }
 
-    private var trialSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Trial", icon: "clock.badge.checkmark.fill")
-
-            VStack(spacing: 1) {
-                settingRow(label: "Days remaining", value: "\(appState.trialDaysRemaining)")
-                Divider().background(Color.white.opacity(0.15)).padding(.leading, 16)
-                settingButton("Upgrade Later", icon: "arrow.forward.circle.fill") {
-                    appState.showUpgradeSheet = false
-                }
-            }
-        }
-        .padding(16)
-        .glassCard(cornerRadius: 24)
-    }
-
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 14) {
             sectionHeader("Privacy", icon: "hand.raised.fill")
@@ -257,13 +241,26 @@ struct SettingsView: View {
 
                 Divider().background(Color.white.opacity(0.15))
 
-                settingButton("Delete Profile completely", icon: "trash.fill", isDestructive: true) {
-                    appState.deleteAccountAndWipeData()
+                settingButton("Delete Account", icon: "trash.fill", isDestructive: true) {
+                    showDeleteConfirm = true
                 }
             }
         }
         .padding(16)
         .glassCard(cornerRadius: 24)
+        .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete Account Permanently", role: .destructive) {
+                Task { if await appState.deleteAccountAndWipeData() == false { deleteFailed = true } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and all your data from this device and our servers. It cannot be undone.")
+        }
+        .alert("Could not delete account", isPresented: $deleteFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Check your connection and try again. Nothing was deleted.")
+        }
     }
 
     private var diagnosticsSection: some View {
@@ -567,43 +564,6 @@ struct DiagnosticsLogView: View {
 }
 
 // MARK: -
-
-struct UpgradeSheetView: View {
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Trial Ended") {
-                    Text("Your 60-day trial has ended. Safety warnings remain available.")
-                        .foregroundStyle(.white)
-                }
-                Section("Choose Plan") {
-                    Button("Subscribe") {
-                        appState.saveSettings(hasPaid: true)
-                        appState.showUpgradeSheet = false
-                    }
-                    .foregroundStyle(AppTheme.primary)
-                    Button("One-Time Purchase") {
-                        appState.saveSettings(hasPaid: true)
-                        appState.showUpgradeSheet = false
-                    }
-                    .foregroundStyle(AppTheme.primary)
-                }
-                Section {
-                    Button("Upgrade Later") {
-                        appState.showUpgradeSheet = false
-                    }
-                    .foregroundStyle(AppTheme.secondary)
-                }
-            }
-            .navigationTitle("Upgrade")
-            .scrollContentBackground(.hidden)
-            .background(MeshBackgroundView().ignoresSafeArea())
-            .tint(AppTheme.primary)
-        }
-    }
-}
 
 // MARK: - PIN Setup
 

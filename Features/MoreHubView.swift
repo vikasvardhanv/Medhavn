@@ -485,29 +485,13 @@ public struct MoreHubView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Get 1 Month Free Premium")
+                        Text("Share Medhavn")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
-                        Text("Refer 5 friends to get a free subscription")
+                        Text("Invite friends and family to use Medhavn")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                     }
-                }
-
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Referral Progress")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.7))
-                        Spacer()
-                        Text("\(appState.referralCount)/5 referred")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(AppTheme.primary)
-                    }
-
-                    ProgressView(value: Double(appState.referralCount), total: 5.0)
-                        .tint(AppTheme.primary)
-                        .background(Color.white.opacity(0.12))
                 }
 
                 if let code = appState.referralCode {

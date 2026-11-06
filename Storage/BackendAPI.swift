@@ -91,6 +91,13 @@ struct BackendAPI {
         _ = try await request("PUT", "v1/profile", body: ["sex": sex], token: token, accept: [200])
     }
 
+    // MARK: - Account
+
+    /// Permanently deletes the signed-in account and all its server data.
+    func deleteAccount(token: String) async throws {
+        _ = try await request("DELETE", "v1/account", body: nil, token: token, accept: [200])
+    }
+
     // MARK: - Transport
 
     private func post(_ path: String, body: [String: Any], token: String?, accept: Set<Int>) async throws -> Int {
